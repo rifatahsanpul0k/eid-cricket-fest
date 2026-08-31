@@ -378,6 +378,17 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Scorer console
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/scorer/matches",
+                                "/api/v1/scorer/matches/*"
+                        ).hasAnyRole(
+                                "SCORER",
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
                         // WebSocket spectators
                         .requestMatchers(
                                 "/ws",

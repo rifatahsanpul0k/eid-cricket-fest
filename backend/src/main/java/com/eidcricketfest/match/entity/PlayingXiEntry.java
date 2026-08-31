@@ -73,4 +73,12 @@ public class PlayingXiEntry {
     public PlayerRegistration getRegistration() {
         return registration;
     }
+
+    public boolean isCaptain() {
+        return captain;
+    }
+
+    public boolean isWicketkeeper() {
+        return wicketkeeper;
+    }
 }

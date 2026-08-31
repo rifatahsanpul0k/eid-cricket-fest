@@ -894,6 +894,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/scorer/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List assigned scorer matches */
+        get: operations["assignedMatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scorer/matches/{matchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get scorer match state */
+        get: operations["matchState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players/{playerId}/career": {
         parameters: {
             query?: never;
@@ -1663,6 +1697,86 @@ export interface components {
             categoryCode?: string;
             categoryName?: string;
         };
+        ScorerMatchResponse: {
+            match?: components["schemas"]["MatchResponse"];
+            assignedToCurrentUser?: boolean;
+        };
+        BallInfo: {
+            /** Format: int64 */
+            deliveryId?: number;
+            /** Format: int32 */
+            sequence?: number;
+            /** Format: int32 */
+            runs?: number;
+            legal?: boolean;
+            commentary?: string;
+        };
+        InningsInfo: {
+            /** Format: int64 */
+            inningsId?: number;
+            /** Format: int32 */
+            inningsNumber?: number;
+            /** Format: int64 */
+            scoreRevision?: number;
+            battingTeam?: string;
+            bowlingTeam?: string;
+            /** Format: int32 */
+            runs?: number;
+            /** Format: int32 */
+            wickets?: number;
+            overs?: string;
+            /** Format: int32 */
+            target?: number;
+            /** Format: int32 */
+            runsRequired?: number;
+            /** Format: int32 */
+            ballsRemaining?: number;
+            currentRunRate?: number;
+            requiredRunRate?: number;
+            striker?: components["schemas"]["PlayerInfo"];
+            nonStriker?: components["schemas"]["PlayerInfo"];
+            bowler?: components["schemas"]["PlayerInfo"];
+        };
+        LiveMatchResponse: {
+            /** Format: int64 */
+            matchId?: number;
+            /** Format: int32 */
+            matchNumber?: number;
+            /** @enum {string} */
+            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            teamA?: string;
+            teamB?: string;
+            innings?: components["schemas"]["InningsInfo"];
+            recentBalls?: components["schemas"]["BallInfo"][];
+        };
+        PlayerInfo: {
+            /** Format: int64 */
+            playerId?: number;
+            name?: string;
+        };
+        PlayingXiPlayer: {
+            /** Format: int64 */
+            playingXiId?: number;
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            teamName?: string;
+            /** Format: int64 */
+            playerId?: number;
+            playerName?: string;
+            captain?: boolean;
+            wicketkeeper?: boolean;
+        };
+        ScorerMatchStateResponse: {
+            match?: components["schemas"]["MatchResponse"];
+            live?: components["schemas"]["LiveMatchResponse"];
+            teamAPlayingXi?: components["schemas"]["PlayingXiPlayer"][];
+            teamBPlayingXi?: components["schemas"]["PlayingXiPlayer"][];
+            /** Format: int64 */
+            nextInningsBattingTeamId?: number;
+            /** Format: int64 */
+            nextInningsBowlingTeamId?: number;
+            assignedToCurrentUser?: boolean;
+        };
         PageResponsePlayerResponse: {
             content?: components["schemas"]["PlayerResponse"][];
             /** Format: int32 */
@@ -1761,59 +1875,6 @@ export interface components {
             /** Format: int64 */
             matchId?: number;
             innings?: components["schemas"]["InningsScorecard"][];
-        };
-        BallInfo: {
-            /** Format: int64 */
-            deliveryId?: number;
-            /** Format: int32 */
-            sequence?: number;
-            /** Format: int32 */
-            runs?: number;
-            legal?: boolean;
-            commentary?: string;
-        };
-        InningsInfo: {
-            /** Format: int64 */
-            inningsId?: number;
-            /** Format: int32 */
-            inningsNumber?: number;
-            /** Format: int64 */
-            scoreRevision?: number;
-            battingTeam?: string;
-            bowlingTeam?: string;
-            /** Format: int32 */
-            runs?: number;
-            /** Format: int32 */
-            wickets?: number;
-            overs?: string;
-            /** Format: int32 */
-            target?: number;
-            /** Format: int32 */
-            runsRequired?: number;
-            /** Format: int32 */
-            ballsRemaining?: number;
-            currentRunRate?: number;
-            requiredRunRate?: number;
-            striker?: components["schemas"]["PlayerInfo"];
-            nonStriker?: components["schemas"]["PlayerInfo"];
-            bowler?: components["schemas"]["PlayerInfo"];
-        };
-        LiveMatchResponse: {
-            /** Format: int64 */
-            matchId?: number;
-            /** Format: int32 */
-            matchNumber?: number;
-            /** @enum {string} */
-            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
-            teamA?: string;
-            teamB?: string;
-            innings?: components["schemas"]["InningsInfo"];
-            recentBalls?: components["schemas"]["BallInfo"][];
-        };
-        PlayerInfo: {
-            /** Format: int64 */
-            playerId?: number;
-            name?: string;
         };
     };
     responses: never;
@@ -3307,6 +3368,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DraftPoolPlayerResponse"][];
+                };
+            };
+        };
+    };
+    assignedMatches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ScorerMatchResponse"][];
+                };
+            };
+        };
+    };
+    matchState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ScorerMatchStateResponse"];
                 };
             };
         };

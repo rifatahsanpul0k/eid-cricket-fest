@@ -4,6 +4,7 @@ import com.eidcricketfest.match.entity.PlayingXiEntry;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PlayingXiEntryRepository
@@ -29,6 +30,20 @@ public interface PlayingXiEntryRepository
 """)
     Optional<PlayingXiEntry> findDetailedById(
             @Param("id") Long id
+    );
+
+    @Query("""
+        SELECT p
+        FROM PlayingXiEntry p
+        JOIN FETCH p.tournamentTeam tt
+        JOIN FETCH tt.team
+        JOIN FETCH p.registration r
+        JOIN FETCH r.player
+        WHERE p.match.id = :matchId
+        ORDER BY tt.id, p.captain DESC, r.player.fullName
+    """)
+    List<PlayingXiEntry> findDetailedByMatchId(
+            @Param("matchId") Long matchId
     );
 
     @Query("""

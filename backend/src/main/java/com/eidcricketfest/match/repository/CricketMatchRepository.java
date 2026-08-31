@@ -106,6 +106,23 @@ public interface CricketMatchRepository
     );
 
     @Query("""
+        SELECT DISTINCT m
+        FROM MatchScorer ms
+        JOIN ms.match m
+        JOIN FETCH m.tournamentEdition
+        JOIN FETCH m.teamA a
+        JOIN FETCH a.team
+        JOIN FETCH m.teamB b
+        JOIN FETCH b.team
+        LEFT JOIN FETCH m.venue
+        WHERE ms.user.id = :userId
+        ORDER BY m.scheduledAt NULLS LAST, m.matchNumber
+    """)
+    List<CricketMatch> findDetailedAssignedToScorer(
+            @Param("userId") Long userId
+    );
+
+    @Query("""
         SELECT m
         FROM CricketMatch m
         JOIN FETCH m.teamA a

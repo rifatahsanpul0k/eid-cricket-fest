@@ -40,3 +40,21 @@ export type ResolveKnockoutMatchRequest =
 export type KnockoutBracketResponse =
   components["schemas"]["KnockoutBracketResponse"];
 export type UserOptionResponse = components["schemas"]["UserOptionResponse"];
+export type LiveMatchResponse = components["schemas"]["LiveMatchResponse"];
+export type InningsResponse = components["schemas"]["InningsResponse"];
+export type StartInningsRequest =
+  components["schemas"]["StartInningsRequest"];
+export type SetBattersRequest = components["schemas"]["SetBattersRequest"];
+export type SetBowlerRequest = components["schemas"]["SetBowlerRequest"];
+export type RecordDeliveryRequest =
+  components["schemas"]["RecordDeliveryRequest"];
+export type UndoDeliveryRequest =
+  components["schemas"]["UndoDeliveryRequest"];
+export type CorrectDeliveryRequest =
+  components["schemas"]["CorrectDeliveryRequest"];
+export type ScorerMatchResponse =
+  components["schemas"]["ScorerMatchResponse"];
+export type ScorerMatchStateResponse =
+  components["schemas"]["ScorerMatchStateResponse"];
+export type ScorerPlayingXiPlayer =
+  components["schemas"]["PlayingXiPlayer"];
