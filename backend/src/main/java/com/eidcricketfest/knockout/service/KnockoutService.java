@@ -11,6 +11,7 @@ import com.eidcricketfest.team.repository.TournamentTeamRepository;
 import com.eidcricketfest.tournament.entity.TournamentEdition;
 import com.eidcricketfest.tournament.repository.TournamentEditionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
@@ -194,6 +195,7 @@ public class KnockoutService {
         return getBracket(editionId);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean generateFinalIfReady(
             Long editionId
     ) {
@@ -274,6 +276,7 @@ public class KnockoutService {
         return true;
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void completeEditionFromFinal(
             Long matchId
     ) {
