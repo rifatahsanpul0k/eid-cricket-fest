@@ -1,6 +1,6 @@
 # Eid Cricket Fest
 
-Backend API for managing Eid Cricket Fest tournaments, teams, drafts, fixtures, live cricket scoring, scorecards, standings, awards, and player history.
+Backend API and public frontend for managing Eid Cricket Fest tournaments, teams, drafts, fixtures, live cricket scoring, scorecards, standings, awards, and player history.
 
 ## Current Backend Stack
 
@@ -16,6 +16,7 @@ Backend API for managing Eid Cricket Fest tournaments, teams, drafts, fixtures, 
 ## Repository Layout
 
 - `backend/` Spring Boot backend application
+- `frontend/` Next.js public frontend application
 - `backend/src/main/resources/db/migration/` Flyway database migrations
 - `backend/src/test/` backend unit and integration tests
 - `docs/deployment/` deployment notes
@@ -25,6 +26,7 @@ Backend API for managing Eid Cricket Fest tournaments, teams, drafts, fixtures, 
 ## Local Development Prerequisites
 
 - Java 25
+- Node 24
 - Docker
 - PostgreSQL for local development
 - Maven wrapper from `backend/mvnw`
@@ -44,6 +46,26 @@ cd backend
 ```
 
 Integration tests use Testcontainers and start PostgreSQL automatically.
+
+## Frontend Development
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend runs on `http://localhost:3000` by default and reads the backend API base URL from `API_BASE_URL`.
+
+## Frontend Checks
+
+```bash
+cd frontend
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
 ## Docker
 

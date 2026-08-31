@@ -1,0 +1,23 @@
+{
+  "projectId": "6162693255179896729",
+  "projectName": "Eid Cricket Fest \u2014 Public Web",
+  "baselineScreenId": "3b094b911f634bf9a34db8396e6cc25a",
+  "selectedScreenId": "891c054d2dcb48778f9e58b8cc0cbe2e",
+  "selectedScreenName": "Broadcast Clarity Variant",
+  "variantsGenerated": [
+    {
+      "screenId": "400f429f414344639a1ca3a941bf70ea",
+      "name": "Premium Stadium Variant"
+    },
+    {
+      "screenId": "e80fc17356c9472c96ca03a9a6a6a230",
+      "name": "Scoreboard First Variant"
+    },
+    {
+      "screenId": "891c054d2dcb48778f9e58b8cc0cbe2e",
+      "name": "Broadcast Clarity Variant"
+    }
+  ],
+  "selectedDirection": "Mobile-first cricket broadcast clarity with compact data hierarchy, dark charcoal surfaces, forest green identity, restrained Eid gold accents, and dominant live-score typography.",
+  "credentialsStored": false
+}
