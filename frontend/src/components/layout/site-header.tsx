@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
+import { Button } from "@/components/ui/button";
+import { getSession } from "@/lib/auth/session";
 
 const navigation = [
   { label: "Home", href: "/" },
@@ -12,7 +14,10 @@ const navigation = [
   { label: "Statistics", href: "/statistics" },
 ];
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const session = await getSession();
+  const authenticated = Boolean(session);
+
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-background/92 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -39,8 +44,36 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <div className="hidden lg:block" />
-        <MobileNavigation />
+        <div className="hidden items-center gap-2 lg:flex">
+          {authenticated ? (
+            <>
+              <Link
+                className="rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                href="/account"
+              >
+                Account
+              </Link>
+              <form action="/api/auth/logout" method="post">
+                <Button size="sm" type="submit" variant="outline">
+                  Logout
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                className="rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                href="/login"
+              >
+                Login
+              </Link>
+              <Button render={<Link href="/register" />} size="sm">
+                Register
+              </Button>
+            </>
+          )}
+        </div>
+        <MobileNavigation authenticated={authenticated} />
       </div>
     </header>
   );

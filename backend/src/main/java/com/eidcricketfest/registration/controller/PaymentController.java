@@ -14,6 +14,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Registration Payments")
 @RestController
 @RequestMapping("/api/v1")
@@ -38,6 +40,18 @@ public class PaymentController {
                 Long.valueOf(jwt.getSubject()),
                 registrationId,
                 request
+        );
+    }
+
+    @Operation(summary = "List my registration payments")
+    @GetMapping("/registrations/{registrationId}/payments/me")
+    public List<PaymentResponse> getMyPayments(
+            @PathVariable Long registrationId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return paymentService.getMyPayments(
+                Long.valueOf(jwt.getSubject()),
+                registrationId
         );
     }
 

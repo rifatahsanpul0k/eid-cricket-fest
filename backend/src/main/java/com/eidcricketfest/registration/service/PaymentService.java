@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -77,6 +78,36 @@ public class PaymentService {
                 submitter,
                 request
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaymentResponse> getMyPayments(
+            Long userId,
+            Long registrationId
+    ) {
+
+        PlayerRegistration registration =
+                findRegistration(registrationId);
+
+        if (registration.getPlayer().getUser() == null
+                || !registration.getPlayer()
+                .getUser()
+                .getId()
+                .equals(userId)) {
+
+            throw new ForbiddenException(
+                    "You cannot view payments for this registration"
+            );
+        }
+
+        return paymentRepository
+                .findMineByRegistrationIdAndUserId(
+                        registrationId,
+                        userId
+                )
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     public PaymentResponse submitPaymentByOrganizer(

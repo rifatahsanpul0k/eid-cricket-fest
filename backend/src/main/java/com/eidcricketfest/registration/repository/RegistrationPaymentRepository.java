@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface RegistrationPaymentRepository
         extends JpaRepository<RegistrationPayment, Long>,
@@ -21,5 +22,20 @@ public interface RegistrationPaymentRepository
     BigDecimal sumAmountByRegistrationAndStatus(
             @Param("registrationId") Long registrationId,
             @Param("status") PaymentStatus status
+    );
+
+    @Query("""
+        SELECT p
+        FROM RegistrationPayment p
+        JOIN FETCH p.registration r
+        JOIN FETCH r.player player
+        LEFT JOIN FETCH player.user
+        WHERE r.id = :registrationId
+          AND player.user.id = :userId
+        ORDER BY p.createdAt DESC
+    """)
+    List<RegistrationPayment> findMineByRegistrationIdAndUserId(
+            @Param("registrationId") Long registrationId,
+            @Param("userId") Long userId
     );
 }

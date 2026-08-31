@@ -45,6 +45,22 @@ public class RegistrationController {
         );
     }
 
+    @Operation(
+            summary = "Get my registration for a tournament edition"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{editionId}/registrations/me")
+    public RegistrationResponse getMyRegistration(
+            @PathVariable Long editionId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+
+        return registrationService.getMyRegistration(
+                Long.valueOf(jwt.getSubject()),
+                editionId
+        );
+    }
+
     @Operation(summary = "Search player registrations")
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/{editionId}/registrations")

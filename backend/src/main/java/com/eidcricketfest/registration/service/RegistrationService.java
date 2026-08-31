@@ -83,6 +83,26 @@ public class RegistrationService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public RegistrationResponse getMyRegistration(
+            Long userId,
+            Long editionId
+    ) {
+
+        return toResponse(
+                registrationRepository
+                        .findMineByEditionIdAndUserId(
+                                editionId,
+                                userId
+                        )
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Registration not found"
+                                )
+                        )
+        );
+    }
+
     private RegistrationResponse register(
             Player player,
             Long editionId,

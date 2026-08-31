@@ -141,7 +141,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get my registration for a tournament edition */
+        get: operations["getMyRegistration"];
         put?: never;
         /** Register myself for a tournament edition */
         post: operations["registerMyself"];
@@ -263,7 +264,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List my registration payments */
+        get: operations["getMyPayments"];
         put?: never;
         /** Submit my registration payment */
         post: operations["submitMyPayment"];
@@ -2008,6 +2010,28 @@ export interface operations {
             };
         };
     };
+    getMyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                editionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RegistrationResponse"];
+                };
+            };
+        };
+    };
     registerMyself: {
         parameters: {
             query?: never;
@@ -2244,6 +2268,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PaymentResponse"];
+                };
+            };
+        };
+    };
+    getMyPayments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                registrationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaymentResponse"][];
                 };
             };
         };

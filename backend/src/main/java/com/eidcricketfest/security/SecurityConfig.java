@@ -116,6 +116,11 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.GET,
+                                "/api/v1/tournament-editions/*/registrations/me"
+                        ).hasRole("PLAYER")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
                                 "/api/v1/tournament-editions/*/registrations"
                         ).hasAnyRole(
                                 "ORGANIZER",
@@ -143,6 +148,11 @@ public class SecurityConfig {
                                 // Player submitting own payment
                                 .requestMatchers(
                                         HttpMethod.POST,
+                                "/api/v1/registrations/*/payments/me"
+                        ).hasRole("PLAYER")
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
                                         "/api/v1/registrations/*/payments/me"
                                 ).hasRole("PLAYER")
 
