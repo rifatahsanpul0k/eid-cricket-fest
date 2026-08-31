@@ -1,11 +1,43 @@
-import type { TournamentEdition } from "@/lib/api/tournaments";
+import Link from "next/link";
 
-export function RegistrationCta({
+import { buttonVariants } from "@/components/ui/button";
+import type { TournamentEdition } from "@/lib/api/tournaments";
+import { getSession } from "@/lib/auth/session";
+import { cn } from "@/lib/utils";
+
+export async function RegistrationCta({
   edition,
 }: {
   edition: TournamentEdition;
 }) {
+  const session = await getSession();
   const registrationOpen = edition.status === "REGISTRATION_OPEN";
+  const authenticated = Boolean(session);
+  const actions = authenticated
+    ? [
+        {
+          href: "/account",
+          label: "My Account",
+          variant: "outline" as const,
+        },
+        {
+          href: "/account/registration",
+          label: "Tournament Registration",
+          variant: "secondary" as const,
+        },
+      ]
+    : [
+        {
+          href: "/login",
+          label: "Login",
+          variant: "outline" as const,
+        },
+        {
+          href: "/register",
+          label: "Register",
+          variant: "secondary" as const,
+        },
+      ];
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8" id="registration">
@@ -25,18 +57,21 @@ export function RegistrationCta({
           </p>
         </div>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row md:mt-0">
-          <span
-            aria-disabled="true"
-            className="rounded-sm border border-white/20 px-4 py-3 text-center text-sm font-semibold text-muted-foreground"
-          >
-            Login
-          </span>
-          <span
-            aria-disabled="true"
-            className="rounded-sm bg-secondary px-4 py-3 text-center text-sm font-semibold text-secondary-foreground"
-          >
-            Register
-          </span>
+          {actions.map((action) => (
+            <Link
+              className={cn(
+                buttonVariants({ variant: action.variant }),
+                "h-auto rounded-sm px-4 py-3 text-center text-sm font-semibold",
+                action.variant === "outline"
+                  ? "border-white/20 text-muted-foreground"
+                  : "text-secondary-foreground"
+              )}
+              href={action.href}
+              key={action.href}
+            >
+              {action.label}
+            </Link>
+          ))}
         </div>
       </div>
     </section>
