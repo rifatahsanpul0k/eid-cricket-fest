@@ -3,7 +3,7 @@ import Link from "next/link";
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getSession } from "@/lib/auth/session";
-import { hasOrganizerAccess } from "@/lib/dashboard/roles";
+import { hasOrganizerAccess, hasScorerAccess } from "@/lib/dashboard/roles";
 
 const navigation = [
   { label: "Home", href: "/" },
@@ -19,6 +19,7 @@ export async function SiteHeader() {
   const session = await getSession();
   const authenticated = Boolean(session);
   const organizer = hasOrganizerAccess(session);
+  const scorer = hasScorerAccess(session);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-background/92 backdrop-blur-md">
@@ -57,6 +58,14 @@ export async function SiteHeader() {
                   Dashboard
                 </Link>
               ) : null}
+              {scorer ? (
+                <Link
+                  className="rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                  href="/scorer"
+                >
+                  Scorer Console
+                </Link>
+              ) : null}
               <Link
                 className="rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                 href="/account"
@@ -83,7 +92,11 @@ export async function SiteHeader() {
             </>
           )}
         </div>
-        <MobileNavigation authenticated={authenticated} organizer={organizer} />
+        <MobileNavigation
+          authenticated={authenticated}
+          organizer={organizer}
+          scorer={scorer}
+        />
       </div>
     </header>
   );

@@ -28,9 +28,11 @@ const navigation = [
 export function MobileNavigation({
   authenticated,
   organizer,
+  scorer,
 }: {
   authenticated: boolean;
   organizer: boolean;
+  scorer: boolean;
 }) {
   return (
     <Sheet>
@@ -70,6 +72,14 @@ export function MobileNavigation({
                   href="/dashboard"
                 >
                   Dashboard
+                </Link>
+              ) : null}
+              {scorer ? (
+                <Link
+                  className="min-h-11 rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                  href="/scorer"
+                >
+                  Scorer Console
                 </Link>
               ) : null}
               <Link
