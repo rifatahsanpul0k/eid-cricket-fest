@@ -22,3 +22,21 @@ export type DraftPoolPlayerResponse =
   components["schemas"]["DraftPoolPlayerResponse"];
 export type CreateDraftRequest = components["schemas"]["CreateDraftRequest"];
 export type DraftPickRequest = components["schemas"]["DraftPickRequest"];
+export type MatchResponse = components["schemas"]["MatchResponse"];
+export type PageResponseMatchResponse =
+  components["schemas"]["PageResponseMatchResponse"];
+export type Venue = components["schemas"]["Venue"];
+export type CreateVenueRequest = components["schemas"]["CreateVenueRequest"];
+export type ScheduleMatchRequest =
+  components["schemas"]["ScheduleMatchRequest"];
+export type AssignScorerRequest =
+  components["schemas"]["AssignScorerRequest"];
+export type SubmitPlayingXiRequest =
+  components["schemas"]["SubmitPlayingXiRequest"];
+export type RecordTossRequest = components["schemas"]["RecordTossRequest"];
+export type NoResultRequest = components["schemas"]["NoResultRequest"];
+export type ResolveKnockoutMatchRequest =
+  components["schemas"]["ResolveKnockoutMatchRequest"];
+export type KnockoutBracketResponse =
+  components["schemas"]["KnockoutBracketResponse"];
+export type UserOptionResponse = components["schemas"]["UserOptionResponse"];

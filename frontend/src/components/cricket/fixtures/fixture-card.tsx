@@ -22,8 +22,8 @@ export function FixtureCard({ match }: { match: Match }) {
           </span>
         </div>
         <h2 className="mt-3 font-heading text-xl font-semibold uppercase tracking-normal">
-          {match.teamA?.teamName ?? "Team A"} vs{" "}
-          {match.teamB?.teamName ?? "Team B"}
+          {match.teamA?.name ?? "Team A"} vs{" "}
+          {match.teamB?.name ?? "Team B"}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           {formatBangladeshDateTime(match.scheduledAt)}

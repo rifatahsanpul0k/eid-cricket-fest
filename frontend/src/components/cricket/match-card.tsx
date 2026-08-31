@@ -18,8 +18,8 @@ export function MatchCard({ match }: { match: Match }) {
         {matchStatusLabel(match.status)}
       </p>
       <h3 className="mt-3 font-heading text-lg font-semibold uppercase tracking-normal">
-        {match.teamA?.teamName ?? "Team A"} vs{" "}
-        {match.teamB?.teamName ?? "Team B"}
+        {match.teamA?.name ?? "Team A"} vs{" "}
+        {match.teamB?.name ?? "Team B"}
       </h3>
       <p className="mt-2 text-sm text-muted-foreground">
         {formatBangladeshDateTime(match.scheduledAt)}

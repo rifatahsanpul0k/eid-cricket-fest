@@ -62,7 +62,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List venues */
+        get: operations["getVenues"];
         put?: never;
         /** Create venue */
         post: operations["createVenue"];
@@ -703,6 +704,23 @@ export interface paths {
         patch: operations["correctDelivery"];
         trace?: never;
     };
+    "/api/v1/users/scorers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List scorer users */
+        get: operations["getScorers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tournaments/{tournamentId}/history": {
         parameters: {
             query?: never;
@@ -1129,6 +1147,13 @@ export interface components {
             semiFinals?: components["schemas"]["MatchInfo"][];
             finalMatch?: components["schemas"]["MatchInfo"];
         };
+        KnockoutTeamInfo: {
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            teamName?: string;
+            /** Format: int32 */
+            seed?: number;
+        };
         MatchInfo: {
             /** Format: int64 */
             matchId?: number;
@@ -1138,20 +1163,13 @@ export interface components {
             stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
             /** @enum {string} */
             status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
-            teamA?: components["schemas"]["TeamInfo"];
-            teamB?: components["schemas"]["TeamInfo"];
-            winner?: components["schemas"]["TeamInfo"];
+            teamA?: components["schemas"]["KnockoutTeamInfo"];
+            teamB?: components["schemas"]["KnockoutTeamInfo"];
+            winner?: components["schemas"]["KnockoutTeamInfo"];
             /** Format: int64 */
             sourceMatchAId?: number;
             /** Format: int64 */
             sourceMatchBId?: number;
-        };
-        TeamInfo: {
-            /** Format: int64 */
-            tournamentTeamId?: number;
-            teamName?: string;
-            /** Format: int32 */
-            seed?: number;
         };
         GenerateRoundRobinRequest: {
             /** Format: int64 */
@@ -1168,13 +1186,18 @@ export interface components {
             stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
             /** @enum {string} */
             status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
-            teamA?: components["schemas"]["TeamInfo"];
-            teamB?: components["schemas"]["TeamInfo"];
+            teamA?: components["schemas"]["MatchTeamInfo"];
+            teamB?: components["schemas"]["MatchTeamInfo"];
             /** Format: int32 */
             oversPerInnings?: number;
             venue?: components["schemas"]["VenueInfo"];
             /** Format: date-time */
             scheduledAt?: string;
+        };
+        MatchTeamInfo: {
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            name?: string;
         };
         VenueInfo: {
             /** Format: int64 */
@@ -1470,6 +1493,13 @@ export interface components {
             wicket?: components["schemas"]["WicketRequest"];
             commentary?: string;
             reason: string;
+        };
+        UserOptionResponse: {
+            /** Format: int64 */
+            id?: number;
+            displayName?: string;
+            email?: string;
+            phone?: string;
         };
         Edition: {
             /** Format: int64 */
@@ -1867,6 +1897,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InningsResponse"];
+                };
+            };
+        };
+    };
+    getVenues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Venue"][];
                 };
             };
         };
@@ -2993,6 +3043,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InningsResponse"];
+                };
+            };
+        };
+    };
+    getScorers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserOptionResponse"][];
                 };
             };
         };

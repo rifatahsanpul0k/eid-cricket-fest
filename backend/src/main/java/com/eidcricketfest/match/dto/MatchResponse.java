@@ -1,6 +1,7 @@
 package com.eidcricketfest.match.dto;
 
 import com.eidcricketfest.match.entity.*;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
@@ -24,6 +25,7 @@ public record MatchResponse(
         Instant scheduledAt
 ) {
 
+    @Schema(name = "MatchTeamInfo")
     public record TeamInfo(
             Long tournamentTeamId,
             String name

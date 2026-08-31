@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Tag(name = "Fixtures & Matches")
@@ -53,6 +54,23 @@ public class FixtureController {
                         request.address()
                 )
         );
+    }
+
+    @Operation(summary = "List venues")
+    @GetMapping("/venues")
+    @SecurityRequirement(name = "bearerAuth")
+    public List<Venue> getVenues() {
+
+        return venueRepository
+                .findAll()
+                .stream()
+                .sorted(
+                        Comparator.comparing(
+                                Venue::getName,
+                                String.CASE_INSENSITIVE_ORDER
+                        )
+                )
+                .toList();
     }
 
     @Operation(summary = "Generate round-robin fixtures")

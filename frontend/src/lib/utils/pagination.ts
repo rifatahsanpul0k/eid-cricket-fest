@@ -40,7 +40,7 @@ export function hasNextPage({
   return (page ?? DEFAULT_PAGE) + 1 < totalPages;
 }
 
-function parseIntegerParam(
+export function parseIntegerParam(
   value: string | undefined,
   fallback: number,
   {

@@ -63,6 +63,16 @@ export default async function DashboardPage() {
           label="Draft"
         />
         <DashboardCard
+          description="Generate league fixtures, create venues, and inspect knockout bracket setup."
+          href="/dashboard/fixtures"
+          label="Fixtures"
+        />
+        <DashboardCard
+          description="Schedule matches, assign scorers, submit playing XIs, and record tosses."
+          href="/dashboard/matches"
+          label="Matches"
+        />
+        <DashboardCard
           count={registrations?.ok ? registrations.data.totalElements : undefined}
           description="Review player registrations and approve or reject pending requests."
           href="/dashboard/registrations"

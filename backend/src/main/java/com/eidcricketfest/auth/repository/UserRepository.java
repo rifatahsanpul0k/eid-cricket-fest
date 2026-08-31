@@ -1,11 +1,13 @@
 package com.eidcricketfest.auth.repository;
 
 import com.eidcricketfest.auth.entity.User;
+import com.eidcricketfest.auth.entity.RoleCode;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -23,5 +25,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     """)
     Optional<User> findByIdentifier(
             @Param("identifier") String identifier
+    );
+
+    @EntityGraph(attributePaths = "roles")
+    @Query("""
+        SELECT DISTINCT u
+        FROM User u
+        JOIN u.roles r
+        WHERE r.code = :role
+          AND u.enabled = true
+        ORDER BY u.displayName ASC
+    """)
+    List<User> findEnabledByRole(
+            @Param("role") RoleCode role
     );
 }

@@ -75,8 +75,8 @@ export default async function LivePage() {
                   {match.status === "INNINGS_BREAK" ? "Innings Break" : "Live"}
                 </p>
                 <h2 className="mt-3 font-heading text-xl font-semibold uppercase tracking-normal">
-                  {match.teamA?.teamName ?? "Team A"} vs{" "}
-                  {match.teamB?.teamName ?? "Team B"}
+                  {match.teamA?.name ?? "Team A"} vs{" "}
+                  {match.teamB?.name ?? "Team B"}
                 </h2>
                 <p className="mt-2 font-mono text-xs uppercase text-muted-foreground">
                   Match {match.matchNumber ?? "-"} · {matchStageLabel(match.stage)}

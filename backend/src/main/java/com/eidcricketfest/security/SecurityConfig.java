@@ -305,6 +305,15 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Scorer selection
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/users/scorers"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
                         // Playing XI
                         .requestMatchers(
                                 HttpMethod.PUT,
@@ -334,6 +343,14 @@ public class SecurityConfig {
                         // Venue management
                         .requestMatchers(
                                 HttpMethod.POST,
+                                "/api/v1/venues"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.GET,
                                 "/api/v1/venues"
                         ).hasAnyRole(
                                 "ORGANIZER",

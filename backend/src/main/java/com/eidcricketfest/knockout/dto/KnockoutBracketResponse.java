@@ -1,6 +1,7 @@
 package com.eidcricketfest.knockout.dto;
 
 import com.eidcricketfest.match.entity.*;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
@@ -31,6 +32,7 @@ public record KnockoutBracketResponse(
             Long sourceMatchBId
     ) {}
 
+    @Schema(name = "KnockoutTeamInfo")
     public record TeamInfo(
 
             Long tournamentTeamId,
