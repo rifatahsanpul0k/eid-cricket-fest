@@ -63,6 +63,9 @@ public class Innings extends BaseEntity {
     @Column(name = "penalty_runs", nullable = false)
     private Integer penaltyRuns;
 
+    @Column(name = "score_revision", nullable = false)
+    private long scoreRevision;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_striker_xi_id")
     private PlayingXiEntry currentStriker;
@@ -113,6 +116,7 @@ public class Innings extends BaseEntity {
         this.byeRuns = 0;
         this.legByeRuns = 0;
         this.penaltyRuns = 0;
+        this.scoreRevision = 0;
 
         this.startedAt = Instant.now();
     }
@@ -253,4 +257,10 @@ public class Innings extends BaseEntity {
     public PlayingXiEntry getCurrentNonStriker() { return currentNonStriker; }
 
     public PlayingXiEntry getCurrentBowler() { return currentBowler; }
+
+    public long getScoreRevision() { return scoreRevision; }
+
+    public void incrementScoreRevision() {
+        scoreRevision++;
+    }
 }

@@ -29,6 +29,10 @@ public interface DeliveryRepository
             UUID clientEventId
     );
 
+    Optional<Delivery> findByUndoClientEventId(
+            UUID clientEventId
+    );
+
     boolean existsByInnings_IdAndSequenceNoGreaterThanAndVoidedAtIsNull(
             Long inningsId,
             Integer sequenceNo

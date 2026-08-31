@@ -2,6 +2,7 @@ package com.eidcricketfest.match.controller;
 
 import com.eidcricketfest.match.dto.*;
 import com.eidcricketfest.match.service.MatchSetupService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,6 +26,7 @@ public class MatchSetupController {
         this.matchSetupService = matchSetupService;
     }
 
+    @Operation(summary = "Assign match scorer")
     @PostMapping("/{matchId}/scorers")
     public void assignScorer(
             @PathVariable Long matchId,
@@ -38,6 +40,7 @@ public class MatchSetupController {
         );
     }
 
+    @Operation(summary = "Submit playing XI")
     @PutMapping(
             "/{matchId}/teams/{tournamentTeamId}/playing-xi"
     )
@@ -67,6 +70,7 @@ public class MatchSetupController {
         );
     }
 
+    @Operation(summary = "Record toss")
     @PostMapping("/{matchId}/toss")
     public void recordToss(
             @PathVariable Long matchId,

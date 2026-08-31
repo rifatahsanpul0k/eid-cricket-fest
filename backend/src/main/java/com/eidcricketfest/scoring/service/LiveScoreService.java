@@ -147,6 +147,7 @@ public class LiveScoreService {
         return new LiveMatchResponse.InningsInfo(
                 innings.getId(),
                 innings.getInningsNumber(),
+                innings.getScoreRevision(),
 
                 innings.getBattingTeam()
                         .getTeam()

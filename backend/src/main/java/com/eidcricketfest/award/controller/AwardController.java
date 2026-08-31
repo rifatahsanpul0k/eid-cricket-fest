@@ -2,6 +2,7 @@ package com.eidcricketfest.award.controller;
 
 import com.eidcricketfest.award.dto.*;
 import com.eidcricketfest.award.service.AwardService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ public class AwardController {
         this.awardService = awardService;
     }
 
+    @Operation(summary = "Assign tournament award")
     @PostMapping("/{editionId}/awards")
     @ResponseStatus(HttpStatus.CREATED)
     @SecurityRequirement(name = "bearerAuth")
@@ -45,6 +47,7 @@ public class AwardController {
         );
     }
 
+    @Operation(summary = "List tournament awards")
     @GetMapping("/{editionId}/awards")
     public List<PlayerAwardResponse> awards(
             @PathVariable Long editionId

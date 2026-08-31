@@ -34,6 +34,7 @@ class ScoringCorrectionIntegrationTest
                                 true,
 
                                 new UndoDeliveryRequest(
+                                        UUID.randomUUID(),
                                         "Incorrect score"
                                 )
                         );

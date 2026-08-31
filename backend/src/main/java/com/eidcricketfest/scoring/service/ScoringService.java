@@ -212,6 +212,7 @@ public class ScoringService {
         inningsRepository.save(innings);
 
         match.startMatch();
+        innings.incrementScoreRevision();
 
         publishScoreChange(matchId);
 
@@ -273,6 +274,8 @@ public class ScoringService {
                 nonStriker
         );
 
+        innings.incrementScoreRevision();
+
         publishScoreChange(
                 innings.getMatch().getId()
         );
@@ -307,6 +310,8 @@ public class ScoringService {
         );
 
         innings.setBowler(bowler);
+
+        innings.incrementScoreRevision();
 
         publishScoreChange(
                 innings.getMatch().getId()
@@ -446,6 +451,7 @@ public class ScoringService {
             innings.complete();
 
             handleInningsCompletion(innings);
+            innings.incrementScoreRevision();
 
             publishScoreChange(
                     innings.getMatch().getId()
@@ -484,6 +490,8 @@ public class ScoringService {
             }
         }
 
+        innings.incrementScoreRevision();
+
         publishScoreChange(
                 innings.getMatch().getId()
         );
@@ -500,6 +508,35 @@ public class ScoringService {
 
         Innings innings = lockInnings(inningsId);
 
+        authorizeScorer(
+                innings.getMatch().getId(),
+                actorUserId,
+                privileged
+        );
+
+        var existingUndo =
+                deliveryRepository
+                        .findByUndoClientEventId(
+                                request.clientEventId()
+                        );
+
+        if (existingUndo.isPresent()) {
+
+            Delivery existing =
+                    existingUndo.get();
+
+            if (!existing.getInnings()
+                    .getId()
+                    .equals(inningsId)) {
+
+                throw new ConflictException(
+                        "Client event ID belongs to another operation"
+                );
+            }
+
+            return toResponse(innings);
+        }
+
         if (innings.getStatus()
                 != InningsStatus.IN_PROGRESS) {
 
@@ -507,12 +544,6 @@ public class ScoringService {
                     "Completed innings requires formal correction workflow"
             );
         }
-
-        authorizeScorer(
-                innings.getMatch().getId(),
-                actorUserId,
-                privileged
-        );
 
         Delivery delivery =
                 deliveryRepository
@@ -541,10 +572,13 @@ public class ScoringService {
                 wicket
         );
 
-        delivery.voidDelivery(
+        delivery.voidForUndo(
                 actor,
-                request.reason().trim()
+                request.reason().trim(),
+                request.clientEventId()
         );
+
+        innings.incrementScoreRevision();
 
         publishScoreChange(
                 innings.getMatch().getId()
@@ -770,6 +804,8 @@ public class ScoringService {
          * Recalculate from all ACTIVE deliveries.
          */
         recalculateInnings(innings);
+
+        innings.incrementScoreRevision();
 
         publishScoreChange(
                 innings.getMatch().getId()
@@ -1288,6 +1324,7 @@ public class ScoringService {
         return new InningsResponse(
                 innings.getId(),
                 innings.getInningsNumber(),
+                innings.getScoreRevision(),
 
                 innings.getBattingTeam()
                         .getTeam()

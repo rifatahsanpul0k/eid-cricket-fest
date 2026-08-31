@@ -2,6 +2,7 @@ package com.eidcricketfest.standings.controller;
 
 import com.eidcricketfest.standings.dto.StandingsResponse;
 import com.eidcricketfest.standings.service.StandingsService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,7 @@ public class StandingsController {
                 standingsService;
     }
 
+    @Operation(summary = "Get tournament edition standings")
     @GetMapping("/{editionId}/standings")
     public StandingsResponse standings(
             @PathVariable Long editionId

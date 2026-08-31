@@ -2,6 +2,7 @@ package com.eidcricketfest.draft.controller;
 
 import com.eidcricketfest.draft.dto.*;
 import com.eidcricketfest.draft.service.DraftService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ public class DraftController {
         this.draftService = draftService;
     }
 
+    @Operation(summary = "Create draft")
     @PostMapping(
             "/tournament-editions/{editionId}/draft"
     )
@@ -38,6 +40,7 @@ public class DraftController {
         );
     }
 
+    @Operation(summary = "Generate draft lottery")
     @PostMapping("/drafts/{draftId}/lottery")
     @SecurityRequirement(name = "bearerAuth")
     public DraftStateResponse generateLottery(
@@ -46,6 +49,7 @@ public class DraftController {
         return draftService.generateLottery(draftId);
     }
 
+    @Operation(summary = "Start draft")
     @PostMapping("/drafts/{draftId}/start")
     @SecurityRequirement(name = "bearerAuth")
     public DraftStateResponse start(
@@ -54,6 +58,7 @@ public class DraftController {
         return draftService.startDraft(draftId);
     }
 
+    @Operation(summary = "Make draft pick")
     @PostMapping("/drafts/{draftId}/picks")
     @SecurityRequirement(name = "bearerAuth")
     public DraftPickResponse makePick(
@@ -80,6 +85,7 @@ public class DraftController {
         );
     }
 
+    @Operation(summary = "Get draft state")
     @GetMapping(
             "/tournament-editions/{editionId}/draft"
     )
@@ -91,6 +97,7 @@ public class DraftController {
         );
     }
 
+    @Operation(summary = "List draft picks")
     @GetMapping("/drafts/{draftId}/picks")
     public List<DraftPickResponse> getPicks(
             @PathVariable Long draftId

@@ -3,6 +3,7 @@ package com.eidcricketfest.match.controller;
 import com.eidcricketfest.match.dto.NoResultRequest;
 import com.eidcricketfest.match.dto.ResolveKnockoutMatchRequest;
 import com.eidcricketfest.match.service.MatchResultService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ public class MatchResultController {
         this.service = service;
     }
 
+    @Operation(summary = "Mark match as no result")
     @PatchMapping("/{matchId}/no-result")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void noResult(
@@ -36,6 +38,7 @@ public class MatchResultController {
         );
     }
 
+    @Operation(summary = "Resolve knockout winner")
     @PatchMapping(
             "/{matchId}/knockout-winner"
     )

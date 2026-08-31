@@ -2,6 +2,7 @@ package com.eidcricketfest.statistics.controller;
 
 import com.eidcricketfest.statistics.dto.PlayerCareerResponse;
 import com.eidcricketfest.statistics.service.StatisticsService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ public class PlayerStatisticsController {
                 statisticsService;
     }
 
+    @Operation(summary = "Get player career statistics")
     @GetMapping("/{playerId}/career")
     public PlayerCareerResponse career(
             @PathVariable Long playerId

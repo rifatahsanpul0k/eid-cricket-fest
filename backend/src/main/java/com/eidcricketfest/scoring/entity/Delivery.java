@@ -28,6 +28,9 @@ public class Delivery {
     @Column(name = "client_event_id")
     private UUID clientEventId;
 
+    @Column(name = "undo_client_event_id")
+    private UUID undoClientEventId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "striker_xi_id")
     private PlayingXiEntry striker;
@@ -196,6 +199,15 @@ public class Delivery {
         this.updatedAt = Instant.now();
     }
 
+    public void voidForUndo(
+            User user,
+            String reason,
+            UUID undoClientEventId
+    ) {
+        this.undoClientEventId = undoClientEventId;
+        voidDelivery(user, reason);
+    }
+
     public Innings getInnings() {
         return innings;
     }
@@ -206,6 +218,10 @@ public class Delivery {
 
     public UUID getClientEventId() {
         return clientEventId;
+    }
+
+    public UUID getUndoClientEventId() {
+        return undoClientEventId;
     }
 
     public PlayingXiEntry getStriker() { return striker; }

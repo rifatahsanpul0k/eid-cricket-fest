@@ -6,6 +6,7 @@ import com.eidcricketfest.match.dto.*;
 import com.eidcricketfest.match.entity.*;
 import com.eidcricketfest.match.repository.VenueRepository;
 import com.eidcricketfest.match.service.FixtureService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -30,6 +31,7 @@ public class FixtureController {
         this.venueRepository = venueRepository;
     }
 
+    @Operation(summary = "Create venue")
     @PostMapping("/venues")
     @ResponseStatus(HttpStatus.CREATED)
     @SecurityRequirement(name = "bearerAuth")
@@ -53,6 +55,7 @@ public class FixtureController {
         );
     }
 
+    @Operation(summary = "Generate round-robin fixtures")
     @PostMapping(
             "/tournament-editions/{editionId}/fixtures/round-robin"
     )
@@ -68,6 +71,7 @@ public class FixtureController {
         );
     }
 
+    @Operation(summary = "Search matches")
     @GetMapping(
             "/tournament-editions/{editionId}/matches"
     )
@@ -101,6 +105,7 @@ public class FixtureController {
                 );
     }
 
+    @Operation(summary = "Schedule match")
     @PatchMapping("/matches/{matchId}/schedule")
     @SecurityRequirement(name = "bearerAuth")
     public MatchResponse scheduleMatch(

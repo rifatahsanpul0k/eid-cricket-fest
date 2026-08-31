@@ -23,7 +23,7 @@ class FlywayMigrationIntegrationTest
 
         assertThat(
                 current.getVersion().getVersion()
-        ).isEqualTo("17");
+        ).isEqualTo("18");
     }
 
     @Test
@@ -38,6 +38,16 @@ class FlywayMigrationIntegrationTest
         assertTableExists("deliveries");
         assertTableExists("wickets");
         assertTableExists("tournament_player_awards");
+
+        assertColumnExists(
+                "deliveries",
+                "undo_client_event_id"
+        );
+
+        assertColumnExists(
+                "innings",
+                "score_revision"
+        );
     }
 
     private void assertTableExists(
@@ -56,6 +66,30 @@ class FlywayMigrationIntegrationTest
                         """,
                         Boolean.class,
                         table
+                );
+
+        assertThat(exists).isTrue();
+    }
+
+    private void assertColumnExists(
+            String table,
+            String column
+    ) {
+
+        Boolean exists =
+                jdbcTemplate.queryForObject(
+                        """
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_schema = 'public'
+                              AND table_name = ?
+                              AND column_name = ?
+                        )
+                        """,
+                        Boolean.class,
+                        table,
+                        column
                 );
 
         assertThat(exists).isTrue();

@@ -2,6 +2,7 @@ package com.eidcricketfest.history.controller;
 
 import com.eidcricketfest.history.dto.TournamentHistoryResponse;
 import com.eidcricketfest.history.service.TournamentHistoryService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,7 @@ public class TournamentHistoryController {
         this.historyService = historyService;
     }
 
+    @Operation(summary = "Get tournament history")
     @GetMapping("/{tournamentId}/history")
     public TournamentHistoryResponse history(
             @PathVariable Long tournamentId

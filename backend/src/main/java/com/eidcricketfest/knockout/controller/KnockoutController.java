@@ -2,6 +2,7 @@ package com.eidcricketfest.knockout.controller;
 
 import com.eidcricketfest.knockout.dto.KnockoutBracketResponse;
 import com.eidcricketfest.knockout.service.KnockoutService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.*;
@@ -23,6 +24,7 @@ public class KnockoutController {
                 knockoutService;
     }
 
+    @Operation(summary = "Generate knockout semi-finals")
     @PostMapping(
             "/{editionId}/knockout/semi-finals"
     )
@@ -38,6 +40,7 @@ public class KnockoutController {
                 );
     }
 
+    @Operation(summary = "Get knockout bracket")
     @GetMapping(
             "/{editionId}/knockout"
     )

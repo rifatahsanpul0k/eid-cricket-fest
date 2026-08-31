@@ -25,6 +25,7 @@ public record LiveMatchResponse(
             Long inningsId,
 
             short inningsNumber,
+            long scoreRevision,
 
             String battingTeam,
             String bowlingTeam,

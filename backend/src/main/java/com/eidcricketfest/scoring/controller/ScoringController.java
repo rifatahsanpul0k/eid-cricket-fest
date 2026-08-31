@@ -4,6 +4,7 @@ import com.eidcricketfest.scoring.dto.*;
 import com.eidcricketfest.scoring.service.LiveScoreService;
 import com.eidcricketfest.scoring.service.ScorecardService;
 import com.eidcricketfest.scoring.service.ScoringService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,6 +33,7 @@ public class ScoringController {
         this.scorecardService = scorecardService;
     }
 
+    @Operation(summary = "Start innings")
     @PostMapping("/matches/{matchId}/innings")
     @SecurityRequirement(name = "bearerAuth")
     public InningsResponse startInnings(
@@ -48,6 +50,7 @@ public class ScoringController {
         );
     }
 
+    @Operation(summary = "Set current batters")
     @PutMapping("/innings/{inningsId}/batters")
     @SecurityRequirement(name = "bearerAuth")
     public InningsResponse setBatters(
@@ -64,6 +67,7 @@ public class ScoringController {
         );
     }
 
+    @Operation(summary = "Set current bowler")
     @PutMapping("/innings/{inningsId}/bowler")
     @SecurityRequirement(name = "bearerAuth")
     public InningsResponse setBowler(
@@ -80,6 +84,7 @@ public class ScoringController {
         );
     }
 
+    @Operation(summary = "Record a delivery")
     @PostMapping("/innings/{inningsId}/deliveries")
     @SecurityRequirement(name = "bearerAuth")
     public InningsResponse scoreBall(
@@ -96,6 +101,7 @@ public class ScoringController {
         );
     }
 
+    @Operation(summary = "Undo latest delivery")
     @PostMapping(
             "/innings/{inningsId}/deliveries/undo"
     )
@@ -114,6 +120,7 @@ public class ScoringController {
         );
     }
 
+    @Operation(summary = "Correct a delivery")
     @PatchMapping("/deliveries/{deliveryId}")
     @SecurityRequirement(name = "bearerAuth")
     public InningsResponse correctDelivery(
@@ -130,6 +137,7 @@ public class ScoringController {
         );
     }
 
+    @Operation(summary = "Get live match state")
     @GetMapping("/matches/{matchId}/live")
     public LiveMatchResponse live(
             @PathVariable Long matchId
@@ -137,6 +145,7 @@ public class ScoringController {
         return liveScoreService.getLiveMatch(matchId);
     }
 
+    @Operation(summary = "Get match scorecard")
     @GetMapping("/matches/{matchId}/scorecard")
     public ScorecardResponse scorecard(
             @PathVariable Long matchId

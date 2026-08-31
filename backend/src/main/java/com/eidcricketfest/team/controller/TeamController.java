@@ -22,6 +22,7 @@ public class TeamController {
         this.teamService = teamService;
     }
 
+    @Operation(summary = "Create team")
     @PostMapping("/teams")
     @ResponseStatus(HttpStatus.CREATED)
     @SecurityRequirement(name = "bearerAuth")
@@ -31,11 +32,13 @@ public class TeamController {
         return teamService.createTeam(request);
     }
 
+    @Operation(summary = "List teams")
     @GetMapping("/teams")
     public List<TeamResponse> getTeams() {
         return teamService.getTeams();
     }
 
+    @Operation(summary = "Add team to tournament edition")
     @PostMapping(
             "/tournament-editions/{editionId}/teams/{teamId}"
     )
@@ -51,6 +54,7 @@ public class TeamController {
         );
     }
 
+    @Operation(summary = "List tournament edition teams")
     @GetMapping(
             "/tournament-editions/{editionId}/teams"
     )
@@ -60,6 +64,7 @@ public class TeamController {
         return teamService.getEditionTeams(editionId);
     }
 
+    @Operation(summary = "Assign team captain")
     @PatchMapping(
             "/tournament-teams/{tournamentTeamId}/captain"
     )

@@ -6,6 +6,7 @@ public record InningsResponse(
 
         Long id,
         short inningsNumber,
+        long scoreRevision,
 
         String battingTeam,
         String bowlingTeam,
