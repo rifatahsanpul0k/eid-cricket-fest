@@ -53,6 +53,16 @@ export default async function DashboardPage() {
       />
       <section className="mx-auto grid w-full max-w-5xl gap-4 px-4 py-8 sm:px-6 md:grid-cols-2 lg:px-8">
         <DashboardCard
+          description="Create permanent teams, add teams to the current edition, and assign captains."
+          href="/dashboard/teams"
+          label="Teams"
+        />
+        <DashboardCard
+          description="Manage draft lifecycle, order, eligible pool, picks, and backend-provided rosters."
+          href="/dashboard/draft"
+          label="Draft"
+        />
+        <DashboardCard
           count={registrations?.ok ? registrations.data.totalElements : undefined}
           description="Review player registrations and approve or reject pending requests."
           href="/dashboard/registrations"
