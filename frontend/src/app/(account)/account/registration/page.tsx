@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   getMyPayments,
   getMyProfile,
@@ -14,6 +14,7 @@ import {
   shouldOfferPayment,
 } from "@/lib/auth/account-state";
 import { getCurrentEditionData } from "@/lib/tournament/current-edition";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Registration",
@@ -102,9 +103,12 @@ export default async function RegistrationPage({
             </dl>
           ) : null}
           {!profile ? (
-            <Button className="mt-5" render={<Link href="/account/profile" />}>
+            <Link
+              className={cn(buttonVariants(), "mt-5")}
+              href="/account/profile"
+            >
               Create profile
-            </Button>
+            </Link>
           ) : null}
         </div>
         {canRegister ? (

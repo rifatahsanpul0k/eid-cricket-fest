@@ -1,8 +1,9 @@
 import Link from "next/link";
 
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { getSession } from "@/lib/auth/session";
+import { hasOrganizerAccess } from "@/lib/dashboard/roles";
 
 const navigation = [
   { label: "Home", href: "/" },
@@ -17,6 +18,7 @@ const navigation = [
 export async function SiteHeader() {
   const session = await getSession();
   const authenticated = Boolean(session);
+  const organizer = hasOrganizerAccess(session);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-background/92 backdrop-blur-md">
@@ -47,6 +49,14 @@ export async function SiteHeader() {
         <div className="hidden items-center gap-2 lg:flex">
           {authenticated ? (
             <>
+              {organizer ? (
+                <Link
+                  className="rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                  href="/dashboard"
+                >
+                  Dashboard
+                </Link>
+              ) : null}
               <Link
                 className="rounded-sm px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-surface-elevated hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                 href="/account"
@@ -67,13 +77,13 @@ export async function SiteHeader() {
               >
                 Login
               </Link>
-              <Button render={<Link href="/register" />} size="sm">
+              <Link className={buttonVariants({ size: "sm" })} href="/register">
                 Register
-              </Button>
+              </Link>
             </>
           )}
         </div>
-        <MobileNavigation authenticated={authenticated} />
+        <MobileNavigation authenticated={authenticated} organizer={organizer} />
       </div>
     </header>
   );

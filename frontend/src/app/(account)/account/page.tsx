@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { getMyProfile, getMyRegistration, getMyPayments } from "@/lib/auth/account-api";
 import {
   paymentStatusMessage,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/account-state";
 import { getSession } from "@/lib/auth/session";
 import { getCurrentEditionData } from "@/lib/tournament/current-edition";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Account",
@@ -109,9 +110,9 @@ function AccountPanel({
         {title}
       </h2>
       <div className="mt-4 min-h-20">{children}</div>
-      <Button className="mt-5" render={<Link href={actionHref} />}>
+      <Link className={cn(buttonVariants(), "mt-5")} href={actionHref}>
         {actionLabel}
-      </Button>
+      </Link>
     </div>
   );
 }

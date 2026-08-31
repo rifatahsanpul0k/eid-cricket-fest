@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const ACCESS_TOKEN_COOKIE = "ecf_access_token";
 
 export function proxy(request: NextRequest) {
-  if (!request.nextUrl.pathname.startsWith("/account")) {
+  if (!isProtectedPath(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
@@ -21,7 +21,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*"],
+  matcher: ["/account/:path*", "/dashboard/:path*"],
 };
 
 function safeReturnTo(value?: string | null) {
@@ -34,4 +34,8 @@ function safeReturnTo(value?: string | null) {
   }
 
   return value;
+}
+
+function isProtectedPath(pathname: string) {
+  return pathname.startsWith("/account") || pathname.startsWith("/dashboard");
 }
