@@ -1,0 +1,21 @@
+.env
+.env.*
+!.env.example
+
+.DS_Store
+
+# Graphify generated output
+graphify-out/
+backend/graphify-out/
+
+# Local Codex task
+task.md
+
+# IntelliJ local/project metadata
+.idea/
+
+# Graphify backup files
+*.graphify-bak
+
+# Local/private key material
+*.key

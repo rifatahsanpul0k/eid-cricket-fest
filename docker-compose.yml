@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: eid-cricket-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: eid_cricket_fest
+      POSTGRES_USER: eid_admin
+      POSTGRES_PASSWORD: eid_dev_password
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - eid_cricket_postgres_data:/var/lib/postgresql
+
+volumes:
+  eid_cricket_postgres_data:
