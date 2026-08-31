@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { StandingRow } from "@/lib/api/standings";
+import { formatNetRunRate, formatPoints } from "@/lib/cricket/formatters";
 
 export function StandingsPreview({
   standings,
@@ -15,13 +16,21 @@ export function StandingsPreview({
 }) {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8" id="standings">
-      <div className="mb-5">
-        <p className="font-mono text-xs font-medium uppercase text-primary">
-          Standings
-        </p>
-        <h2 className="font-heading text-3xl font-bold uppercase tracking-normal">
-          Table preview
-        </h2>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="font-mono text-xs font-medium uppercase text-primary">
+            Standings
+          </p>
+          <h2 className="font-heading text-3xl font-bold uppercase tracking-normal">
+            Table preview
+          </h2>
+        </div>
+        <Link
+          className="inline-flex min-h-10 items-center rounded-sm border border-white/10 px-3 py-2 text-sm font-medium transition-colors hover:bg-surface-elevated"
+          href="/standings"
+        >
+          View Standings
+        </Link>
       </div>
       <div className="overflow-x-auto rounded-sm border border-white/10 bg-card">
         <Table>
@@ -50,10 +59,10 @@ export function StandingsPreview({
                   <TableCell className="text-right">{row.won ?? 0}</TableCell>
                   <TableCell className="text-right">{row.lost ?? 0}</TableCell>
                   <TableCell className="text-right font-mono text-secondary">
-                    {row.points ?? 0}
+                    {formatPoints(row.points)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {(row.netRunRate ?? 0).toFixed(2)}
+                    {formatNetRunRate(row.netRunRate)}
                   </TableCell>
                 </TableRow>
               ))
@@ -73,3 +82,4 @@ export function StandingsPreview({
     </section>
   );
 }
+import Link from "next/link";

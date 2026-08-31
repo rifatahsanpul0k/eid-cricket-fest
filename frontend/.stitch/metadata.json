@@ -18,6 +18,23 @@
       "name": "Broadcast Clarity Variant"
     }
   ],
+  "f2aScreens": [
+    {
+      "screenId": "5baa5518fc054196894f28fe91a1bc90",
+      "name": "Match Centre - Broadcast Hub",
+      "route": "/fixtures"
+    },
+    {
+      "screenId": "8a56610e6dc0424db51f2b7e49804652",
+      "name": "Live Match - Broadcast Hub",
+      "route": "/matches/{matchId}/live"
+    },
+    {
+      "screenId": "85e54bfc1f4e495687a9af3de850a858",
+      "name": "Match Scorecard - Broadcast Hub",
+      "route": "/matches/{matchId}/scorecard"
+    }
+  ],
   "selectedDirection": "Mobile-first cricket broadcast clarity with compact data hierarchy, dark charcoal surfaces, forest green identity, restrained Eid gold accents, and dominant live-score typography.",
   "credentialsStored": false
 }

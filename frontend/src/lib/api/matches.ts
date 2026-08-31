@@ -4,17 +4,40 @@ import type { components } from "@/lib/api/schema";
 
 export type Match = components["schemas"]["MatchResponse"];
 export type LiveMatch = components["schemas"]["LiveMatchResponse"];
+export type MatchPage = components["schemas"]["PageResponseMatchResponse"];
+export type MatchStage = NonNullable<Match["stage"]>;
+export type MatchStatus = NonNullable<Match["status"]>;
+
+type MatchListOptions = {
+  status?: Match["status"];
+  stage?: Match["stage"];
+  teamId?: number;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  direction?: "asc" | "desc";
+};
 
 export async function getMatches(
   editionId: number,
-  options: {
-    status?: Match["status"];
-    page?: number;
-    size?: number;
-    sortBy?: string;
-    direction?: "asc" | "desc";
-  } = {}
+  options: MatchListOptions = {}
 ): Promise<ApiResult<Match[]>> {
+  const result = await getMatchesPage(editionId, options);
+
+  if (!result.ok) {
+    return result;
+  }
+
+  return {
+    ok: true,
+    data: result.data.content ?? [],
+  };
+}
+
+export async function getMatchesPage(
+  editionId: number,
+  options: MatchListOptions = {}
+): Promise<ApiResult<MatchPage>> {
   try {
     const { data, error, response } = await createApiClient().GET(
       "/api/v1/tournament-editions/{editionId}/matches",
@@ -25,6 +48,8 @@ export async function getMatches(
           },
           query: {
             status: options.status,
+            stage: options.stage,
+            teamId: options.teamId,
             page: options.page ?? 0,
             size: options.size ?? 20,
             sortBy: options.sortBy ?? "matchNumber",
@@ -37,14 +62,17 @@ export async function getMatches(
     if (data?.content) {
       return {
         ok: true,
-        data: data.content,
+        data,
       };
     }
 
     if (data && !data.content) {
       return {
         ok: true,
-        data: [],
+        data: {
+          ...data,
+          content: [],
+        },
       };
     }
 

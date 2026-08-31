@@ -30,15 +30,15 @@ export function TournamentHero({
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               className="rounded-sm bg-secondary px-4 py-3 text-center text-sm font-semibold text-secondary-foreground outline-none transition-colors hover:bg-secondary/85 focus-visible:ring-3 focus-visible:ring-ring/50"
-              href="#live"
+              href="/live"
             >
-              View Live Score
+              View Live Match
             </Link>
             <Link
               className="rounded-sm border border-white/20 px-4 py-3 text-center text-sm font-semibold outline-none transition-colors hover:bg-surface-elevated focus-visible:ring-3 focus-visible:ring-ring/50"
-              href="#fixtures"
+              href="/fixtures"
             >
-              See Fixtures
+              View Matches
             </Link>
           </div>
         </div>

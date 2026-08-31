@@ -85,3 +85,7 @@ The header is sticky, dark, and lightly blurred. Brand text uses Oswald uppercas
 ## Empty And Error States
 
 Backend unavailable, no live match, no upcoming matches, and empty standings use the same card/surface/border system. Messages should remain plain and actionable without fake scores.
+
+## F2-A Match Centre Rules
+
+Fixture, live, and scorecard screens should keep match identity, status, and score as the first scan targets. Public navigation should only link to implemented public pages. Live pages should retain the last rendered score while realtime connectivity recovers.

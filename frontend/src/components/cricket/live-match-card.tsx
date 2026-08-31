@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import type { LiveMatch } from "@/lib/api/matches";
 
@@ -57,6 +59,14 @@ export function LiveMatchCard({
                 value={innings.scoreRevision?.toString()}
               />
             </dl>
+            {liveMatch?.matchId ? (
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-sm bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/85 lg:col-span-2 lg:justify-self-start"
+                href={`/matches/${liveMatch.matchId}/live`}
+              >
+                Follow Live
+              </Link>
+            ) : null}
           </div>
         ) : (
           <p className="rounded-sm border border-white/10 bg-surface p-4 text-sm text-muted-foreground">

@@ -14,13 +14,15 @@ import {
 
 const navigation = [
   { label: "Home", href: "/" },
-  { label: "Live", href: "#live" },
-  { label: "Fixtures", href: "#fixtures" },
-  { label: "Standings", href: "#standings" },
-  { label: "Players", href: "#tournament" },
-  { label: "Statistics", href: "#tournament" },
-  { label: "Login", href: "#registration" },
-  { label: "Register", href: "#registration" },
+  { label: "Live", href: "/live" },
+  { label: "Fixtures", href: "/fixtures" },
+  { label: "Standings", href: "/standings" },
+  { label: "Teams", href: "/teams" },
+  { label: "Players", href: "/players" },
+  { label: "Statistics", href: "/statistics" },
+  { label: "Knockout", href: "/knockout" },
+  { label: "Awards", href: "/awards" },
+  { label: "History", href: "/history" },
 ];
 
 export function MobileNavigation() {

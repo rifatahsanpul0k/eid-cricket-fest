@@ -4,11 +4,12 @@ import { MobileNavigation } from "@/components/layout/mobile-navigation";
 
 const navigation = [
   { label: "Home", href: "/" },
-  { label: "Live", href: "#live" },
-  { label: "Fixtures", href: "#fixtures" },
-  { label: "Standings", href: "#standings" },
-  { label: "Players", href: "#tournament" },
-  { label: "Statistics", href: "#tournament" },
+  { label: "Live", href: "/live" },
+  { label: "Fixtures", href: "/fixtures" },
+  { label: "Standings", href: "/standings" },
+  { label: "Teams", href: "/teams" },
+  { label: "Players", href: "/players" },
+  { label: "Statistics", href: "/statistics" },
 ];
 
 export function SiteHeader() {
@@ -38,20 +39,7 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <div className="hidden items-center gap-2 lg:flex">
-          <Link
-            className="rounded-sm border border-white/20 px-3 py-2 text-sm font-medium outline-none transition-colors hover:bg-surface-elevated focus-visible:ring-3 focus-visible:ring-ring/50"
-            href="#registration"
-          >
-            Login
-          </Link>
-          <Link
-            className="rounded-sm bg-secondary px-3 py-2 text-sm font-semibold text-secondary-foreground outline-none transition-colors hover:bg-secondary/85 focus-visible:ring-3 focus-visible:ring-ring/50"
-            href="#registration"
-          >
-            Register
-          </Link>
-        </div>
+        <div className="hidden lg:block" />
         <MobileNavigation />
       </div>
     </header>
