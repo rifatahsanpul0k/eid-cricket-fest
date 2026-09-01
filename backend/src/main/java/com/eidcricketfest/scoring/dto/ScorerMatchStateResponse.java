@@ -9,6 +9,8 @@ public record ScorerMatchStateResponse(
         LiveMatchResponse live,
         List<PlayingXiPlayer> teamAPlayingXi,
         List<PlayingXiPlayer> teamBPlayingXi,
+        List<Long> dismissedPlayingXiIds,
+        Long previousOverBowlerPlayingXiId,
         Long nextInningsBattingTeamId,
         Long nextInningsBowlingTeamId,
         boolean assignedToCurrentUser

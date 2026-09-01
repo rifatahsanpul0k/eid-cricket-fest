@@ -155,11 +155,81 @@ export function nextBowlingXi(state: ScorerMatchStateResponse) {
   return playersByTeamId(state, state.nextInningsBowlingTeamId);
 }
 
+export function eligibleActiveBatters(state: ScorerMatchStateResponse) {
+  return excludeDismissed(activeBattingXi(state), state);
+}
+
+export function batterOptions(
+  players: ScorerPlayingXiPlayer[],
+  excludedPlayingXiId: number | "" = ""
+) {
+  return players.filter(
+    (player) =>
+      player.playingXiId !== undefined &&
+      player.playingXiId !== excludedPlayingXiId
+  );
+}
+
+export function currentBatters(state: ScorerMatchStateResponse) {
+  const batters = activeBattingXi(state);
+  const innings = state.live?.innings;
+
+  return [
+    xiForLivePlayer(batters, innings?.striker?.playerId),
+    xiForLivePlayer(batters, innings?.nonStriker?.playerId),
+  ].filter((player): player is ScorerPlayingXiPlayer => player !== undefined);
+}
+
+export function wicketDismissalOptions(state: ScorerMatchStateResponse) {
+  return currentBatters(state);
+}
+
+export function eligibleIncomingBatters(state: ScorerMatchStateResponse) {
+  const currentIds = new Set(
+    currentBatters(state)
+      .map((player) => player.playingXiId)
+      .filter((id): id is number => id !== undefined)
+  );
+
+  return eligibleActiveBatters(state).filter(
+    (player) =>
+      player.playingXiId !== undefined && !currentIds.has(player.playingXiId)
+  );
+}
+
+export function eligibleNextOverBowlers(state: ScorerMatchStateResponse) {
+  const previous = state.previousOverBowlerPlayingXiId;
+
+  return activeBowlingXi(state).filter(
+    (player) =>
+      player.playingXiId !== undefined && player.playingXiId !== previous
+  );
+}
+
 export function xiIdForLivePlayer(
   players: ScorerPlayingXiPlayer[],
   playerId?: number
 ) {
   return players.find((player) => player.playerId === playerId)?.playingXiId;
+}
+
+function xiForLivePlayer(
+  players: ScorerPlayingXiPlayer[],
+  playerId?: number
+) {
+  return players.find((player) => player.playerId === playerId);
+}
+
+function excludeDismissed(
+  players: ScorerPlayingXiPlayer[],
+  state: ScorerMatchStateResponse
+) {
+  const dismissed = new Set(state.dismissedPlayingXiIds ?? []);
+
+  return players.filter(
+    (player) =>
+      player.playingXiId !== undefined && !dismissed.has(player.playingXiId)
+  );
 }
 
 function playersByTeamId(

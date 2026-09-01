@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import type {
@@ -15,15 +15,21 @@ import {
   ScoringIntentStore,
   activeBattingXi,
   activeBowlingXi,
+  batterOptions,
   buildDeliveryRequest,
   canCorrectDelivery,
   canUndo,
+  currentBatters,
   deliveryLabel,
+  eligibleActiveBatters,
+  eligibleIncomingBatters,
+  eligibleNextOverBowlers,
   needsBatters,
   needsBowler,
   nextBattingXi,
   nextBowlingXi,
   validateDeliveryInput,
+  wicketDismissalOptions,
   xiIdForLivePlayer,
   type DeliveryInput,
 } from "@/lib/scorer/scorer-state";
@@ -59,12 +65,14 @@ export function ScorerConsole({
 }: {
   initialState: ScorerMatchStateResponse;
 }) {
-  const [state, setState] = useState(initialState);
+  const [state, setState] = useState<ScorerMatchStateResponse>(initialState);
   const [connectionState, setConnectionState] =
     useState<LiveConnectionState>("connecting");
   const [busyKey, setBusyKey] = useState<string>();
   const [message, setMessage] = useState<string>();
   const [intentStore] = useState(() => new ScoringIntentStore());
+  const stateRef = useRef(initialState);
+  const liveRefreshKeyRef = useRef<string | undefined>(undefined);
 
   const matchId = state.match?.id;
   const innings = state.live?.innings;
@@ -76,19 +84,62 @@ export function ScorerConsole({
     connectionState === "error";
 
   useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
     if (!matchId) {
       return;
+    }
+
+    async function refreshScorerState(
+      incoming: ScorerMatchStateResponse["live"]
+    ) {
+      if (!incoming?.matchId) {
+        return;
+      }
+
+      const refreshKey = liveRefreshKey(incoming);
+
+      if (refreshKey && liveRefreshKeyRef.current === refreshKey) {
+        return;
+      }
+
+      liveRefreshKeyRef.current = refreshKey;
+
+      const response = await fetch(`/api/scorer/matches/${incoming.matchId}`, {
+        method: "GET",
+      }).catch(() => undefined);
+
+      const payload = response
+        ? ((await response.json().catch(() => ({}))) as ServerPayload)
+        : {};
+
+      if (!payload.state) {
+        return;
+      }
+
+      const incomingState = payload.state;
+
+      setState((current) =>
+        shouldAcceptScorerState(current, incomingState) ? incomingState : current
+      );
     }
 
     const client = createLiveMatchClient({
       matchId,
       onConnectionState: setConnectionState,
       onUpdate: (incoming) => {
+        if (!shouldAcceptLiveUpdate(stateRef.current.live, incoming)) {
+          return;
+        }
+
         setState((current) =>
           shouldAcceptLiveUpdate(current.live, incoming)
             ? { ...current, live: incoming }
             : current
         );
+        void refreshScorerState(incoming);
       },
     });
 
@@ -209,8 +260,6 @@ export function ScorerConsole({
                 state={state}
               />
               <TransitionPanel
-                activeBatters={activeBatters}
-                activeBowlers={activeBowlers}
                 busy={busyKey}
                 inningsId={innings?.inningsId}
                 mutate={mutate}
@@ -221,7 +270,7 @@ export function ScorerConsole({
                 onDelivery={submitDelivery}
               />
               <WicketPanel
-                batters={activeBatters}
+                batters={wicketDismissalOptions(state)}
                 bowlers={activeBowlers}
                 disabled={scoringLocked || needsBatters(state) || needsBowler(state)}
                 onDelivery={submitDelivery}
@@ -313,21 +362,24 @@ function SetupPanel({
 }
 
 function TransitionPanel({
-  activeBatters,
-  activeBowlers,
   busy,
   inningsId,
   mutate,
   state,
 }: {
-  activeBatters: ScorerPlayingXiPlayer[];
-  activeBowlers: ScorerPlayingXiPlayer[];
   busy?: string;
   inningsId?: number;
   mutate: (body: MutationBody, actionKey: string) => void;
   state: ScorerMatchStateResponse;
 }) {
-  if (!inningsId || state.match?.status !== "LIVE") {
+  const battersNeeded = needsBatters(state);
+  const bowlerNeeded = needsBowler(state);
+
+  if (
+    !inningsId ||
+    state.match?.status !== "LIVE" ||
+    (!battersNeeded && !bowlerNeeded)
+  ) {
     return null;
   }
 
@@ -336,37 +388,31 @@ function TransitionPanel({
       <h2 className="font-heading text-xl font-bold uppercase tracking-normal">
         Change Players
       </h2>
-      {needsBatters(state) ? (
-        <SetBattersForm
-          batters={activeBatters}
-          disabled={Boolean(busy)}
-          inningsId={inningsId}
-          mutate={mutate}
-        />
-      ) : null}
-      {needsBowler(state) ? (
-        <SetBowlerForm
-          bowlers={activeBowlers}
-          disabled={Boolean(busy)}
-          inningsId={inningsId}
-          mutate={mutate}
-        />
-      ) : null}
-      {!needsBatters(state) && !needsBowler(state) ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+      {battersNeeded ? (
+        canUseIncomingBatterTransition(state) ? (
+          <SetIncomingBatterForm
+            batters={eligibleIncomingBatters(state)}
+            disabled={Boolean(busy)}
+            inningsId={inningsId}
+            mutate={mutate}
+            state={state}
+          />
+        ) : (
           <SetBattersForm
-            batters={activeBatters}
+            batters={eligibleActiveBatters(state)}
             disabled={Boolean(busy)}
             inningsId={inningsId}
             mutate={mutate}
           />
-          <SetBowlerForm
-            bowlers={activeBowlers}
-            disabled={Boolean(busy)}
-            inningsId={inningsId}
-            mutate={mutate}
-          />
-        </div>
+        )
+      ) : null}
+      {bowlerNeeded ? (
+        <SetBowlerForm
+          bowlers={eligibleNextOverBowlers(state)}
+          disabled={Boolean(busy)}
+          inningsId={inningsId}
+          mutate={mutate}
+        />
       ) : null}
     </section>
   );
@@ -692,6 +738,8 @@ function StartInningsForm({
   const [striker, setStriker] = useState<PlayerSelectValue>("");
   const [nonStriker, setNonStriker] = useState<PlayerSelectValue>("");
   const [bowler, setBowler] = useState<PlayerSelectValue>("");
+  const strikerOptions = batterOptions(batting, nonStriker);
+  const nonStrikerOptions = batterOptions(batting, striker);
 
   return (
     <section className="rounded-sm border border-white/10 bg-card p-4">
@@ -702,15 +750,27 @@ function StartInningsForm({
         <PlayerSelect
           disabled={disabled}
           label="Striker"
-          onChange={setStriker}
-          players={batting}
+          onChange={(value) => {
+            setStriker(value);
+
+            if (value !== "" && value === nonStriker) {
+              setNonStriker("");
+            }
+          }}
+          players={strikerOptions}
           value={striker}
         />
         <PlayerSelect
           disabled={disabled}
           label="Non-striker"
-          onChange={setNonStriker}
-          players={batting}
+          onChange={(value) => {
+            setNonStriker(value);
+
+            if (value !== "" && value === striker) {
+              setStriker("");
+            }
+          }}
+          players={nonStrikerOptions}
           value={nonStriker}
         />
         <PlayerSelect
@@ -757,21 +817,35 @@ function SetBattersForm({
 }) {
   const [striker, setStriker] = useState<PlayerSelectValue>("");
   const [nonStriker, setNonStriker] = useState<PlayerSelectValue>("");
+  const strikerOptions = batterOptions(batters, nonStriker);
+  const nonStrikerOptions = batterOptions(batters, striker);
 
   return (
     <div className="grid gap-2">
       <PlayerSelect
         disabled={disabled}
         label="Striker"
-        onChange={setStriker}
-        players={batters}
+        onChange={(value) => {
+          setStriker(value);
+
+          if (value !== "" && value === nonStriker) {
+            setNonStriker("");
+          }
+        }}
+        players={strikerOptions}
         value={striker}
       />
       <PlayerSelect
         disabled={disabled}
         label="Non-striker"
-        onChange={setNonStriker}
-        players={batters}
+        onChange={(value) => {
+          setNonStriker(value);
+
+          if (value !== "" && value === striker) {
+            setStriker("");
+          }
+        }}
+        players={nonStrikerOptions}
         value={nonStriker}
       />
       <Button
@@ -803,6 +877,73 @@ function SetBattersForm({
   );
 }
 
+function SetIncomingBatterForm({
+  batters,
+  disabled,
+  inningsId,
+  mutate,
+  state,
+}: {
+  batters: ScorerPlayingXiPlayer[];
+  disabled: boolean;
+  inningsId: number;
+  mutate: (body: MutationBody, actionKey: string) => void;
+  state: ScorerMatchStateResponse;
+}) {
+  const pendingRef = useRef(false);
+
+  useEffect(() => {
+    if (!disabled) {
+      pendingRef.current = false;
+    }
+  }, [disabled]);
+
+  return (
+    <div className="grid gap-2">
+      <p className="font-mono text-xs uppercase text-muted-foreground">
+        Incoming batter
+      </p>
+      {batters.length === 0 ? (
+        <p className="rounded-sm border border-white/10 bg-background p-3 text-sm text-muted-foreground">
+          No eligible incoming batters available.
+        </p>
+      ) : null}
+      {batters.map((player) => (
+        <Button
+          disabled={
+            transitionButtonDisabled(
+              disabled,
+              false,
+              player.playingXiId === undefined
+            ) ||
+            buildIncomingBatterMutation(inningsId, state, player) === undefined
+          }
+          key={player.playingXiId}
+          onClick={() => {
+            if (disabled || pendingRef.current) {
+              return;
+            }
+
+            const transition =
+              buildIncomingBatterMutation(inningsId, state, player);
+
+            if (!transition) {
+              return;
+            }
+
+            pendingRef.current = true;
+            mutate(transition.body, transition.actionKey);
+          }}
+          type="button"
+          variant="outline"
+        >
+          {player.playerName}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 function SetBowlerForm({
   bowlers,
   disabled,
@@ -814,36 +955,54 @@ function SetBowlerForm({
   inningsId: number;
   mutate: (body: MutationBody, actionKey: string) => void;
 }) {
-  const [bowler, setBowler] = useState<PlayerSelectValue>("");
+  const pendingRef = useRef(false);
+
+  useEffect(() => {
+    if (!disabled) {
+      pendingRef.current = false;
+    }
+  }, [disabled]);
 
   return (
     <div className="grid gap-2">
-      <PlayerSelect
-        disabled={disabled}
-        label="Bowler"
-        onChange={setBowler}
-        players={bowlers}
-        value={bowler}
-      />
-      <Button
-        disabled={disabled || bowler === ""}
-        onClick={() =>
-          mutate(
-            {
-              action: "set-bowler",
-              inningsId,
-              payload: {
-                bowlerPlayingXiId: bowler || 0,
-              },
-            },
-            "set-bowler"
-          )
-        }
-        type="button"
-        variant="outline"
-      >
-        Set Bowler
-      </Button>
+      <p className="font-mono text-xs uppercase text-muted-foreground">
+        Next bowler
+      </p>
+      {bowlers.length === 0 ? (
+        <p className="rounded-sm border border-white/10 bg-background p-3 text-sm text-muted-foreground">
+          No eligible bowlers available.
+        </p>
+      ) : null}
+      {bowlers.map((player) => (
+        <Button
+          disabled={transitionButtonDisabled(
+            disabled,
+            false,
+            player.playingXiId === undefined
+          )}
+          key={player.playingXiId}
+          onClick={() => {
+            if (
+              disabled ||
+              pendingRef.current ||
+              player.playingXiId === undefined
+            ) {
+              return;
+            }
+
+            pendingRef.current = true;
+            const transition = buildNextBowlerMutation(inningsId, player);
+
+            if (transition) {
+              mutate(transition.body, transition.actionKey);
+            }
+          }}
+          type="button"
+          variant="outline"
+        >
+          {player.playerName}
+        </Button>
+      ))}
     </div>
   );
 }
@@ -991,6 +1150,140 @@ function Detail({
       </dd>
     </div>
   );
+}
+
+function liveRefreshKey(live: ScorerMatchStateResponse["live"]) {
+  if (!live?.matchId) {
+    return undefined;
+  }
+
+  return [
+    live.matchId,
+    live.innings?.inningsId ?? "none",
+    live.innings?.scoreRevision ?? "unknown",
+  ].join(":");
+}
+
+function shouldAcceptScorerState(
+  current: ScorerMatchStateResponse,
+  incoming: ScorerMatchStateResponse
+) {
+  const currentLive = current.live;
+  const incomingLive = incoming.live;
+
+  if (!currentLive || !incomingLive) {
+    return true;
+  }
+
+  if (currentLive.matchId !== incomingLive.matchId) {
+    return false;
+  }
+
+  const currentInnings = currentLive.innings;
+  const incomingInnings = incomingLive.innings;
+
+  if (!currentInnings || !incomingInnings) {
+    return true;
+  }
+
+  if (currentInnings.inningsId !== incomingInnings.inningsId) {
+    return true;
+  }
+
+  const currentRevision = currentInnings.scoreRevision;
+  const incomingRevision = incomingInnings.scoreRevision;
+
+  if (currentRevision === undefined || incomingRevision === undefined) {
+    return true;
+  }
+
+  return incomingRevision >= currentRevision;
+}
+
+export function canUseIncomingBatterTransition(
+  state: ScorerMatchStateResponse
+) {
+  return needsBatters(state) && currentBatters(state).length === 1;
+}
+
+export function buildIncomingBatterMutation(
+  inningsId: number,
+  state: ScorerMatchStateResponse,
+  incoming: ScorerPlayingXiPlayer
+) {
+  const innings = state.live?.innings;
+  const incomingXiId = incoming.playingXiId;
+
+  if (!innings || incomingXiId === undefined) {
+    return undefined;
+  }
+
+  const strikerXiId = xiIdForLivePlayer(
+    activeBattingXi(state),
+    innings.striker?.playerId
+  );
+  const nonStrikerXiId = xiIdForLivePlayer(
+    activeBattingXi(state),
+    innings.nonStriker?.playerId
+  );
+
+  if (strikerXiId !== undefined && nonStrikerXiId === undefined) {
+    return {
+      actionKey: `set-batter:${inningsId}:${incomingXiId}`,
+      body: {
+        action: "set-batters",
+        inningsId,
+        payload: {
+          strikerPlayingXiId: strikerXiId,
+          nonStrikerPlayingXiId: incomingXiId,
+        },
+      } satisfies MutationBody,
+    };
+  }
+
+  if (strikerXiId === undefined && nonStrikerXiId !== undefined) {
+    return {
+      actionKey: `set-batter:${inningsId}:${incomingXiId}`,
+      body: {
+        action: "set-batters",
+        inningsId,
+        payload: {
+          strikerPlayingXiId: incomingXiId,
+          nonStrikerPlayingXiId: nonStrikerXiId,
+        },
+      } satisfies MutationBody,
+    };
+  }
+
+  return undefined;
+}
+
+export function buildNextBowlerMutation(
+  inningsId: number,
+  bowler: ScorerPlayingXiPlayer
+) {
+  if (bowler.playingXiId === undefined) {
+    return undefined;
+  }
+
+  return {
+    actionKey: `set-bowler:${inningsId}:${bowler.playingXiId}`,
+    body: {
+      action: "set-bowler",
+      inningsId,
+      payload: {
+        bowlerPlayingXiId: bowler.playingXiId,
+      },
+    } satisfies MutationBody,
+  };
+}
+
+export function transitionButtonDisabled(
+  disabled: boolean,
+  pending: boolean,
+  missingPlayerId: boolean
+) {
+  return disabled || pending || missingPlayerId;
 }
 
 function ScorerError({ message }: { message: string }) {

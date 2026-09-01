@@ -16,7 +16,10 @@ import com.eidcricketfest.scoring.dto.ScorerMatchResponse;
 import com.eidcricketfest.scoring.dto.ScorerMatchStateResponse;
 import com.eidcricketfest.scoring.entity.Innings;
 import com.eidcricketfest.scoring.entity.InningsStatus;
+import com.eidcricketfest.scoring.entity.Delivery;
 import com.eidcricketfest.scoring.repository.InningsRepository;
+import com.eidcricketfest.scoring.repository.DeliveryRepository;
+import com.eidcricketfest.scoring.repository.WicketRepository;
 import com.eidcricketfest.team.entity.TournamentTeam;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,8 @@ public class ScorerMatchQueryService {
     private final MatchTossRepository tossRepository;
     private final PlayingXiEntryRepository playingXiRepository;
     private final InningsRepository inningsRepository;
+    private final DeliveryRepository deliveryRepository;
+    private final WicketRepository wicketRepository;
     private final LiveScoreService liveScoreService;
 
     public ScorerMatchQueryService(
@@ -40,6 +45,8 @@ public class ScorerMatchQueryService {
             MatchTossRepository tossRepository,
             PlayingXiEntryRepository playingXiRepository,
             InningsRepository inningsRepository,
+            DeliveryRepository deliveryRepository,
+            WicketRepository wicketRepository,
             LiveScoreService liveScoreService
     ) {
         this.matchRepository = matchRepository;
@@ -47,6 +54,8 @@ public class ScorerMatchQueryService {
         this.tossRepository = tossRepository;
         this.playingXiRepository = playingXiRepository;
         this.inningsRepository = inningsRepository;
+        this.deliveryRepository = deliveryRepository;
+        this.wicketRepository = wicketRepository;
         this.liveScoreService = liveScoreService;
     }
 
@@ -114,6 +123,8 @@ public class ScorerMatchQueryService {
                 live,
                 playersForTeam(playingXi, teamAId),
                 playersForTeam(playingXi, teamBId),
+                dismissedPlayingXiIds(live),
+                previousOverBowlerPlayingXiId(live),
                 nextInnings.battingTeamId(),
                 nextInnings.bowlingTeamId(),
                 assigned
@@ -266,6 +277,75 @@ public class ScorerMatchQueryService {
                 ),
                 tossRepository.existsByMatch_Id(match.getId())
         );
+    }
+
+    private List<Long> dismissedPlayingXiIds(
+            LiveMatchResponse live
+    ) {
+
+        if (live.innings() == null) {
+            return List.of();
+        }
+
+        Long inningsId =
+                live.innings()
+                        .inningsId();
+
+        if (inningsId == null) {
+            return List.of();
+        }
+
+        return wicketRepository
+                .findActiveByInningsId(inningsId)
+                .stream()
+                .map(wicket ->
+                        wicket.getDismissedPlayer()
+                                .getId()
+                )
+                .distinct()
+                .toList();
+    }
+
+    private Long previousOverBowlerPlayingXiId(
+            LiveMatchResponse live
+    ) {
+
+        if (live.innings() == null
+                || live.innings().bowler() != null) {
+            return null;
+        }
+
+        Long inningsId =
+                live.innings()
+                        .inningsId();
+
+        if (inningsId == null) {
+            return null;
+        }
+
+        List<Delivery> deliveries =
+                deliveryRepository
+                        .findActiveDeliveries(inningsId);
+
+        int legalBalls = 0;
+        Delivery lastLegalDelivery = null;
+
+        for (Delivery delivery : deliveries) {
+            if (delivery.isLegal()) {
+                legalBalls++;
+                lastLegalDelivery = delivery;
+            }
+        }
+
+        if (legalBalls == 0
+                || legalBalls % 6 != 0
+                || lastLegalDelivery == null) {
+            return null;
+        }
+
+        return lastLegalDelivery
+                .getBowler()
+                .getId();
     }
 
     private boolean playingXiSubmitted(

@@ -1797,6 +1797,9 @@ export interface components {
             /** Format: int64 */
             nextInningsBowlingTeamId?: number;
             assignedToCurrentUser?: boolean;
+            dismissedPlayingXiIds?: number[];
+            /** Format: int64 */
+            previousOverBowlerPlayingXiId?: number | null;
         };
         PageResponsePlayerResponse: {
             content?: components["schemas"]["PlayerResponse"][];

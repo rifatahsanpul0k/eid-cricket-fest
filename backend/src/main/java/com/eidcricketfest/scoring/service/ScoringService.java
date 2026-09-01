@@ -309,6 +309,11 @@ public class ScoringService {
                 bowler
         );
 
+        validateNextOverBowler(
+                innings,
+                bowler
+        );
+
         innings.setBowler(bowler);
 
         innings.incrementScoreRevision();
@@ -462,12 +467,16 @@ public class ScoringService {
 
         if (wicketFell) {
 
-            /*
-             * Scorer explicitly chooses the new pair.
-             * This avoids incorrect assumptions for run-outs,
-             * crossed batters and unusual dismissal situations.
-             */
-            innings.clearBatters();
+            Wicket wicket =
+                    wicketRepository
+                            .findByDelivery_Id(delivery.getId())
+                            .orElseThrow();
+
+            applyPostWicketBatterState(
+                    innings,
+                    delivery,
+                    wicket
+            );
 
         } else {
 
@@ -883,7 +892,16 @@ public class ScoringService {
 
         if (lastWasWicket) {
 
-            innings.clearBatters();
+            Wicket wicket =
+                    wicketRepository
+                            .findByDelivery_Id(last.getId())
+                            .orElseThrow();
+
+            applyPostWicketBatterState(
+                    innings,
+                    last,
+                    wicket
+            );
 
         } else {
 
@@ -909,6 +927,65 @@ public class ScoringService {
                 );
             }
         }
+    }
+
+    private void applyPostWicketBatterState(
+            Innings innings,
+            Delivery delivery,
+            Wicket wicket
+    ) {
+
+        if (!canPreserveSurvivorAfterWicket(
+                innings,
+                delivery,
+                wicket
+        )) {
+
+            /*
+             * Scorer explicitly chooses the pair for run-outs,
+             * crossed batters and over-boundary wicket cases.
+             */
+            innings.clearBatters();
+            return;
+        }
+
+        PlayingXiEntry dismissed =
+                wicket.getDismissedPlayer();
+
+        if (dismissed.getId()
+                .equals(delivery.getStriker().getId())) {
+
+            innings.setBatters(
+                    null,
+                    delivery.getNonStriker()
+            );
+            return;
+        }
+
+        innings.setBatters(
+                delivery.getStriker(),
+                null
+        );
+    }
+
+    private boolean canPreserveSurvivorAfterWicket(
+            Innings innings,
+            Delivery delivery,
+            Wicket wicket
+    ) {
+
+        if (!wicket.getDismissalType()
+                .isBowlerCredited()) {
+
+            return false;
+        }
+
+        if (delivery.isSwapEnds()) {
+            return false;
+        }
+
+        return !delivery.isLegal()
+                || innings.getLegalBalls() % 6 != 0;
     }
 
     private void validateDelivery(
@@ -1278,6 +1355,60 @@ public class ScoringService {
                     "Player must belong to the bowling team"
             );
         }
+    }
+
+    private void validateNextOverBowler(
+            Innings innings,
+            PlayingXiEntry bowler
+    ) {
+
+        if (innings.getCurrentBowler() != null
+                || innings.getLegalBalls() == null
+                || innings.getLegalBalls() == 0
+                || innings.getLegalBalls() % 6 != 0) {
+            return;
+        }
+
+        Long previous =
+                previousCompletedOverBowlerPlayingXiId(
+                        innings.getId()
+                );
+
+        if (previous != null
+                && previous.equals(bowler.getId())) {
+            throw new ConflictException(
+                    "A bowler cannot bowl two consecutive completed overs"
+            );
+        }
+    }
+
+    private Long previousCompletedOverBowlerPlayingXiId(
+            Long inningsId
+    ) {
+
+        List<Delivery> deliveries =
+                deliveryRepository
+                        .findActiveDeliveries(inningsId);
+
+        int legalBalls = 0;
+        Delivery lastLegalDelivery = null;
+
+        for (Delivery delivery : deliveries) {
+            if (delivery.isLegal()) {
+                legalBalls++;
+                lastLegalDelivery = delivery;
+            }
+        }
+
+        if (legalBalls == 0
+                || legalBalls % 6 != 0
+                || lastLegalDelivery == null) {
+            return null;
+        }
+
+        return lastLegalDelivery
+                .getBowler()
+                .getId();
     }
 
     private void authorizeScorer(

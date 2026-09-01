@@ -17,6 +17,9 @@ public abstract class CricketIntegrationSupport
     protected ScoringService scoringService;
 
     @Autowired
+    protected ScorerMatchQueryService scorerMatchQueryService;
+
+    @Autowired
     protected ScorecardService scorecardService;
 
     @Autowired
