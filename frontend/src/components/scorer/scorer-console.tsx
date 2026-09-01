@@ -14,23 +14,35 @@ import { createLiveMatchClient } from "@/lib/realtime/stomp-client";
 import {
   ScoringIntentStore,
   activeBattingXi,
-  activeBowlingXi,
   batterOptions,
+  buildByeDelivery,
   buildDeliveryRequest,
+  buildLegByeDelivery,
+  buildNoBallBatDelivery,
+  buildNoBallByeDelivery,
+  buildNoBallLegByeDelivery,
+  buildWideDelivery,
   canCorrectDelivery,
   canUndo,
   currentBatters,
+  deterministicDismissedBatter,
   deliveryLabel,
+  dismissalOptionsForDelivery,
+  dismissalRequiresFielder,
   eligibleActiveBatters,
+  eligibleFielders,
   eligibleIncomingBatters,
   eligibleNextOverBowlers,
+  extraRunOptions,
   needsBatters,
   needsBowler,
   nextBattingXi,
   nextBowlingXi,
+  runOptions,
   validateDeliveryInput,
-  wicketDismissalOptions,
+  wideOptions,
   xiIdForLivePlayer,
+  type DismissalType,
   type DeliveryInput,
 } from "@/lib/scorer/scorer-state";
 import { cn } from "@/lib/utils";
@@ -49,17 +61,6 @@ type ServerPayload = {
 
 type PlayerSelectValue = number | "";
 
-const wicketTypes = [
-  "BOWLED",
-  "CAUGHT",
-  "LBW",
-  "RUN_OUT",
-  "STUMPED",
-  "HIT_WICKET",
-  "HIT_BALL_TWICE",
-  "OBSTRUCTING_FIELD",
-] as const;
-
 export function ScorerConsole({
   initialState,
 }: {
@@ -76,8 +77,6 @@ export function ScorerConsole({
 
   const matchId = state.match?.id;
   const innings = state.live?.innings;
-  const activeBatters = activeBattingXi(state);
-  const activeBowlers = activeBowlingXi(state);
   const scoringLocked =
     busyKey !== undefined ||
     connectionState === "disconnected" ||
@@ -268,12 +267,12 @@ export function ScorerConsole({
               <DeliveryPanel
                 disabled={scoringLocked || needsBatters(state) || needsBowler(state)}
                 onDelivery={submitDelivery}
+                state={state}
               />
               <WicketPanel
-                batters={wicketDismissalOptions(state)}
-                bowlers={activeBowlers}
                 disabled={scoringLocked || needsBatters(state) || needsBowler(state)}
                 onDelivery={submitDelivery}
+                state={state}
               />
             </>
           )}
@@ -286,8 +285,6 @@ export function ScorerConsole({
             state={state}
           />
           <CreasePanel
-            batters={activeBatters}
-            bowlers={activeBowlers}
             state={state}
           />
         </aside>
@@ -421,9 +418,11 @@ function TransitionPanel({
 function DeliveryPanel({
   disabled,
   onDelivery,
+  state,
 }: {
   disabled: boolean;
   onDelivery: (actionKey: string, input: DeliveryInput) => void;
+  state: ScorerMatchStateResponse;
 }) {
   return (
     <section className="rounded-sm border border-white/10 bg-card p-4">
@@ -431,7 +430,7 @@ function DeliveryPanel({
         Score Ball
       </h2>
       <div className="mt-4 grid grid-cols-3 gap-2">
-        {[0, 1, 2, 3, 4, 6].map((runs) => (
+        {runOptions().map((runs) => (
           <Button
             className="h-16 text-2xl"
             disabled={disabled}
@@ -443,7 +442,7 @@ function DeliveryPanel({
           </Button>
         ))}
       </div>
-      <ExtrasForm disabled={disabled} onDelivery={onDelivery} />
+      <ExtrasForm disabled={disabled} onDelivery={onDelivery} state={state} />
     </section>
   );
 }
@@ -451,136 +450,346 @@ function DeliveryPanel({
 function ExtrasForm({
   disabled,
   onDelivery,
+  state,
 }: {
   disabled: boolean;
   onDelivery: (actionKey: string, input: DeliveryInput) => void;
+  state: ScorerMatchStateResponse;
 }) {
-  const [kind, setKind] = useState("wide");
-  const [runs, setRuns] = useState(1);
+  const [mode, setMode] = useState<
+    "closed" | "wide" | "no-ball" | "bye" | "leg-bye" | "more"
+  >("closed");
+  const [otherRuns, setOtherRuns] = useState(1);
+  const [extraWicketInput, setExtraWicketInput] = useState<DeliveryInput>();
 
   return (
     <div className="mt-4 grid gap-3">
-      <div className="grid grid-cols-[1fr_96px] gap-2">
-        <select
-          className="min-h-12 rounded-sm border border-white/10 bg-background px-3"
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          ["WD", "wide"],
+          ["NB", "no-ball"],
+          ["B", "bye"],
+          ["LB", "leg-bye"],
+        ].map(([label, value]) => (
+          <Button
+            className="h-14 text-lg"
+            disabled={disabled}
+            key={value}
+            onClick={() => {
+              setExtraWicketInput(undefined);
+              setMode(value as typeof mode);
+            }}
+            type="button"
+            variant={mode === value ? "default" : "secondary"}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      {mode === "wide" ? (
+        <div className="grid gap-3 rounded-sm border border-white/10 bg-background p-3">
+          <p className="font-mono text-xs uppercase text-muted-foreground">
+            Wide - total wide runs
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {wideOptions().map((runs) => (
+              <Button
+                className="h-14"
+                disabled={disabled}
+                key={runs}
+                onClick={() =>
+                  onDelivery(`delivery:wide:${runs}`, buildWideDelivery(runs))
+                }
+                type="button"
+                variant="outline"
+              >
+                {runs}W
+              </Button>
+            ))}
+          </div>
+          <ExtraOtherRuns
+            disabled={disabled}
+            label="Other wide total"
+            onRecord={(runs) =>
+              onDelivery(`delivery:wide:${runs}`, buildWideDelivery(runs))
+            }
+            runs={otherRuns}
+            setRuns={setOtherRuns}
+          />
+          <Button
+            disabled={disabled}
+            onClick={() => setExtraWicketInput(buildWideDelivery(1))}
+            type="button"
+            variant="destructive"
+          >
+            Wicket from Wide
+          </Button>
+        </div>
+      ) : null}
+      {mode === "no-ball" ? (
+        <div className="grid gap-3 rounded-sm border border-white/10 bg-background p-3">
+          <p className="font-mono text-xs uppercase text-muted-foreground">
+            No Ball - +1 no-ball automatically
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {runOptions().map((runs) => (
+              <Button
+                className="h-14"
+                disabled={disabled}
+                key={runs}
+                onClick={() =>
+                  onDelivery(
+                    `delivery:no-ball:bat:${runs}`,
+                    buildNoBallBatDelivery(runs)
+                  )
+                }
+                type="button"
+                variant="outline"
+              >
+                NB + {runs}
+              </Button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <NoBallExtraGroup
+              disabled={disabled}
+              kind="bye"
+              label="NB + Bye"
+              onDelivery={onDelivery}
+            />
+            <NoBallExtraGroup
+              disabled={disabled}
+              kind="leg-bye"
+              label="NB + Leg Bye"
+              onDelivery={onDelivery}
+            />
+          </div>
+          <Button
+            disabled={disabled}
+            onClick={() => setExtraWicketInput(buildNoBallBatDelivery(0))}
+            type="button"
+            variant="destructive"
+          >
+            Wicket from No Ball
+          </Button>
+        </div>
+      ) : null}
+      {mode === "bye" ? (
+        <ExtraRunPanel
           disabled={disabled}
-          onChange={(event) => setKind(event.target.value)}
-          value={kind}
-        >
-          <option value="wide">Wide</option>
-          <option value="no-ball">No-ball</option>
-          <option value="bye">Bye</option>
-          <option value="leg-bye">Leg-bye</option>
-          <option value="penalty">Penalty</option>
-        </select>
+          label="Bye runs"
+          onRecord={(runs) =>
+            onDelivery(`delivery:bye:${runs}`, buildByeDelivery(runs))
+          }
+          runs={otherRuns}
+          setRuns={setOtherRuns}
+        />
+      ) : null}
+      {mode === "leg-bye" ? (
+        <ExtraRunPanel
+          disabled={disabled}
+          label="Leg-bye runs"
+          onRecord={(runs) =>
+            onDelivery(`delivery:leg-bye:${runs}`, buildLegByeDelivery(runs))
+          }
+          runs={otherRuns}
+          setRuns={setOtherRuns}
+        />
+      ) : null}
+      <Button
+        disabled={disabled}
+        onClick={() => {
+          setExtraWicketInput(undefined);
+          setMode(mode === "more" ? "closed" : "more");
+        }}
+        type="button"
+        variant="ghost"
+      >
+        More
+      </Button>
+      {mode === "more" ? (
+        <div className="grid gap-2 rounded-sm border border-white/10 bg-background p-3">
+          <ExtraOtherRuns
+            disabled={disabled}
+            label="Penalty runs"
+            onRecord={(runs) =>
+              onDelivery(`delivery:penalty:${runs}`, { penaltyRuns: runs })
+            }
+            runs={otherRuns}
+            setRuns={setOtherRuns}
+          />
+        </div>
+      ) : null}
+      {extraWicketInput ? (
+        <WicketFlow
+          baseInput={extraWicketInput}
+          disabled={disabled}
+          onCancel={() => setExtraWicketInput(undefined)}
+          onDelivery={onDelivery}
+          state={state}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ExtraRunPanel({
+  disabled,
+  label,
+  onRecord,
+  runs,
+  setRuns,
+}: {
+  disabled: boolean;
+  label: string;
+  onRecord: (runs: number) => void;
+  runs: number;
+  setRuns: (runs: number) => void;
+}) {
+  return (
+    <div className="grid gap-3 rounded-sm border border-white/10 bg-background p-3">
+      <p className="font-mono text-xs uppercase text-muted-foreground">{label}</p>
+      <div className="grid grid-cols-4 gap-2">
+        {extraRunOptions().map((value) => (
+          <Button
+            className="h-14"
+            disabled={disabled}
+            key={value}
+            onClick={() => onRecord(value)}
+            type="button"
+            variant="outline"
+          >
+            {value}
+          </Button>
+        ))}
+      </div>
+      <ExtraOtherRuns
+        disabled={disabled}
+        label="Other"
+        onRecord={onRecord}
+        runs={runs}
+        setRuns={setRuns}
+      />
+    </div>
+  );
+}
+
+function ExtraOtherRuns({
+  disabled,
+  label,
+  onRecord,
+  runs,
+  setRuns,
+}: {
+  disabled: boolean;
+  label: string;
+  onRecord: (runs: number) => void;
+  runs: number;
+  setRuns: (runs: number) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_auto] gap-2">
+      <label className="grid gap-1 text-xs uppercase text-muted-foreground">
+        {label}
         <input
-          className="min-h-12 rounded-sm border border-white/10 bg-background px-3"
+          className="min-h-12 rounded-sm border border-white/10 bg-background px-3 text-foreground"
           disabled={disabled}
           min={0}
           onChange={(event) => setRuns(Number(event.target.value))}
           type="number"
           value={runs}
         />
-      </div>
+      </label>
       <Button
+        className="self-end"
         disabled={disabled}
-        onClick={() => {
-          const value = Math.max(0, runs);
-          const input =
-            kind === "wide"
-              ? { wideRuns: Math.max(1, value) }
-              : kind === "no-ball"
-                ? { noBallRuns: Math.max(1, value) }
-                : kind === "bye"
-                  ? { byeRuns: value }
-                  : kind === "leg-bye"
-                    ? { legByeRuns: value }
-                    : { penaltyRuns: value };
-
-          onDelivery(`delivery:${kind}:${value}`, input);
-        }}
+        onClick={() => onRecord(Math.max(0, runs))}
         type="button"
         variant="secondary"
       >
-        Record Extra
+        Record
       </Button>
     </div>
   );
 }
 
-function WicketPanel({
-  batters,
-  bowlers,
+function NoBallExtraGroup({
   disabled,
+  kind,
+  label,
   onDelivery,
 }: {
-  batters: ScorerPlayingXiPlayer[];
-  bowlers: ScorerPlayingXiPlayer[];
   disabled: boolean;
+  kind: "bye" | "leg-bye";
+  label: string;
   onDelivery: (actionKey: string, input: DeliveryInput) => void;
 }) {
-  const [dismissedPlayingXiId, setDismissedPlayingXiId] =
-    useState<PlayerSelectValue>("");
-  const [dismissalType, setDismissalType] =
-    useState<(typeof wicketTypes)[number]>("BOWLED");
-  const [fielderPlayingXiId, setFielderPlayingXiId] =
-    useState<PlayerSelectValue>("");
+  return (
+    <div className="grid gap-2">
+      <p className="text-xs uppercase text-muted-foreground">{label}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {extraRunOptions().map((runs) => {
+          const input =
+            kind === "bye"
+              ? buildNoBallByeDelivery(runs)
+              : buildNoBallLegByeDelivery(runs);
+
+          return (
+            <Button
+              className="h-12"
+              disabled={disabled}
+              key={runs}
+              onClick={() => onDelivery(`delivery:no-ball:${kind}:${runs}`, input)}
+              type="button"
+              variant="outline"
+            >
+              {runs}
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function WicketPanel({
+  disabled,
+  onDelivery,
+  state,
+}: {
+  disabled: boolean;
+  onDelivery: (actionKey: string, input: DeliveryInput) => void;
+  state: ScorerMatchStateResponse;
+}) {
+  const [open, setOpen] = useState(false);
 
   return (
     <section className="rounded-sm border border-white/10 bg-card p-4">
-      <h2 className="font-heading text-xl font-bold uppercase tracking-normal">
-        Wicket
-      </h2>
-      <div className="mt-3 grid gap-2">
-        <PlayerSelect
-          disabled={disabled}
-          label="Dismissed"
-          onChange={setDismissedPlayingXiId}
-          players={batters}
-          value={dismissedPlayingXiId}
-        />
-        <label className="grid gap-1 text-sm">
-          Dismissal
-          <select
-            className="min-h-12 rounded-sm border border-white/10 bg-background px-3"
-            disabled={disabled}
-            onChange={(event) =>
-              setDismissalType(event.target.value as (typeof wicketTypes)[number])
-            }
-            value={dismissalType}
-          >
-            {wicketTypes.map((type) => (
-              <option key={type} value={type}>
-                {type.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
-        </label>
-        <PlayerSelect
-          allowEmpty
-          disabled={disabled}
-          label="Fielder"
-          onChange={setFielderPlayingXiId}
-          players={bowlers}
-          value={fielderPlayingXiId}
-        />
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-heading text-xl font-bold uppercase tracking-normal">
+          Wicket
+        </h2>
         <Button
-          disabled={disabled || dismissedPlayingXiId === ""}
-          onClick={() =>
-            onDelivery(`delivery:wicket:${dismissalType}:${dismissedPlayingXiId}`, {
-              wicket: {
-                dismissalType,
-                dismissedPlayingXiId: dismissedPlayingXiId || 0,
-                fielderPlayingXiId: fielderPlayingXiId || undefined,
-              },
-            })
-          }
+          className="h-12"
+          disabled={disabled}
+          onClick={() => setOpen((value) => !value)}
           type="button"
           variant="destructive"
         >
-          Record Wicket
+          Wicket
         </Button>
       </div>
+      {open ? (
+        <div className="mt-3">
+          <WicketFlow
+            baseInput={{ runsOffBat: 0 }}
+            disabled={disabled}
+            onCancel={() => setOpen(false)}
+            onDelivery={onDelivery}
+            state={state}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -661,21 +870,13 @@ function RecentPanel({
           />
         </label>
         <div className="grid grid-cols-[1fr_96px] gap-2">
-          <select
-            className="min-h-11 rounded-sm border border-white/10 bg-background px-3"
-            disabled={!canCorrectDelivery(state)}
-            onChange={(event) =>
-              setCorrectionDeliveryId(Number(event.target.value) || undefined)
-            }
-            value={correctionDeliveryId ?? latestBall?.deliveryId ?? ""}
-          >
-            <option value="">Select ball</option>
-            {(state.live?.recentBalls ?? []).map((ball) => (
-              <option key={ball.deliveryId} value={ball.deliveryId}>
-                Ball {ball.sequence}: {deliveryLabel(ball)}
-              </option>
-            ))}
-          </select>
+          <p className="flex min-h-11 items-center rounded-sm border border-white/10 bg-background px-3 text-sm text-muted-foreground">
+            {correctionDeliveryId
+              ? `Ball ${selectedCorrectionBall(state, correctionDeliveryId)?.sequence ?? "-"}`
+              : latestBall?.deliveryId
+                ? `Ball ${latestBall.sequence}`
+                : "Tap a recent ball"}
+          </p>
           <input
             className="min-h-11 rounded-sm border border-white/10 bg-background px-3"
             min={0}
@@ -738,49 +939,120 @@ function StartInningsForm({
   const [striker, setStriker] = useState<PlayerSelectValue>("");
   const [nonStriker, setNonStriker] = useState<PlayerSelectValue>("");
   const [bowler, setBowler] = useState<PlayerSelectValue>("");
+  const step =
+    striker === ""
+      ? "striker"
+      : nonStriker === ""
+        ? "non-striker"
+        : bowler === ""
+          ? "bowler"
+          : "ready";
   const strikerOptions = batterOptions(batting, nonStriker);
   const nonStrikerOptions = batterOptions(batting, striker);
+  const selectedStriker = batting.find((player) => player.playingXiId === striker);
+  const selectedNonStriker = batting.find(
+    (player) => player.playingXiId === nonStriker
+  );
+  const selectedBowler = bowling.find((player) => player.playingXiId === bowler);
 
   return (
     <section className="rounded-sm border border-white/10 bg-card p-4">
       <h2 className="font-heading text-xl font-bold uppercase tracking-normal">
         Start Innings
       </h2>
-      <div className="mt-3 grid gap-2">
-        <PlayerSelect
-          disabled={disabled}
-          label="Striker"
-          onChange={(value) => {
-            setStriker(value);
+      <div className="mt-3 grid gap-3">
+        <SelectionSummary
+          bowler={selectedBowler}
+          nonStriker={selectedNonStriker}
+          striker={selectedStriker}
+        />
+        {step === "striker" ? (
+          <PlayerChoiceGrid
+            disabled={disabled}
+            label="Select striker"
+            onSelect={(value) => {
+              setStriker(value);
 
-            if (value !== "" && value === nonStriker) {
-              setNonStriker("");
-            }
-          }}
-          players={strikerOptions}
-          value={striker}
-        />
-        <PlayerSelect
-          disabled={disabled}
-          label="Non-striker"
-          onChange={(value) => {
-            setNonStriker(value);
+              if (value === nonStriker) {
+                setNonStriker("");
+              }
+            }}
+            players={strikerOptions}
+            selectedId={striker}
+          />
+        ) : null}
+        {step === "non-striker" ? (
+          <PlayerChoiceGrid
+            disabled={disabled}
+            label="Select non-striker"
+            onSelect={(value) => {
+              setNonStriker(value);
 
-            if (value !== "" && value === striker) {
-              setStriker("");
-            }
-          }}
-          players={nonStrikerOptions}
-          value={nonStriker}
-        />
-        <PlayerSelect
-          disabled={disabled}
-          label="Bowler"
-          onChange={setBowler}
-          players={bowling}
-          value={bowler}
-        />
+              if (value === striker) {
+                setStriker("");
+              }
+            }}
+            players={nonStrikerOptions}
+            selectedId={nonStriker}
+          />
+        ) : null}
+        {step === "bowler" ? (
+          <PlayerChoiceGrid
+            disabled={disabled}
+            label="Select opening bowler"
+            onSelect={setBowler}
+            players={bowling}
+            selectedId={bowler}
+          />
+        ) : null}
+        {step === "ready" ? (
+          <div className="rounded-sm border border-white/10 bg-background p-3">
+            <p className="font-mono text-xs uppercase text-muted-foreground">
+              Ready to start
+            </p>
+          </div>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {striker !== "" ? (
+            <Button
+              disabled={disabled}
+              onClick={() => {
+                setStriker("");
+                setNonStriker("");
+                setBowler("");
+              }}
+              type="button"
+              variant="outline"
+            >
+              Change striker
+            </Button>
+          ) : null}
+          {nonStriker !== "" ? (
+            <Button
+              disabled={disabled}
+              onClick={() => {
+                setNonStriker("");
+                setBowler("");
+              }}
+              type="button"
+              variant="outline"
+            >
+              Back
+            </Button>
+          ) : null}
+          {bowler !== "" ? (
+            <Button
+              disabled={disabled}
+              onClick={() => setBowler("")}
+              type="button"
+              variant="outline"
+            >
+              Change bowler
+            </Button>
+          ) : null}
+        </div>
         <Button
+          className="h-12"
           disabled={
             disabled ||
             striker === "" ||
@@ -819,36 +1091,74 @@ function SetBattersForm({
   const [nonStriker, setNonStriker] = useState<PlayerSelectValue>("");
   const strikerOptions = batterOptions(batters, nonStriker);
   const nonStrikerOptions = batterOptions(batters, striker);
+  const selectedStriker = batters.find((player) => player.playingXiId === striker);
+  const selectedNonStriker = batters.find(
+    (player) => player.playingXiId === nonStriker
+  );
 
   return (
-    <div className="grid gap-2">
-      <PlayerSelect
-        disabled={disabled}
-        label="Striker"
-        onChange={(value) => {
-          setStriker(value);
-
-          if (value !== "" && value === nonStriker) {
-            setNonStriker("");
-          }
-        }}
-        players={strikerOptions}
-        value={striker}
+    <div className="grid gap-3">
+      <SelectionSummary
+        nonStriker={selectedNonStriker}
+        striker={selectedStriker}
       />
-      <PlayerSelect
-        disabled={disabled}
-        label="Non-striker"
-        onChange={(value) => {
-          setNonStriker(value);
+      {striker === "" ? (
+        <PlayerChoiceGrid
+          disabled={disabled}
+          label="Select striker"
+          onSelect={(value) => {
+            setStriker(value);
 
-          if (value !== "" && value === striker) {
-            setStriker("");
-          }
-        }}
-        players={nonStrikerOptions}
-        value={nonStriker}
-      />
+            if (value === nonStriker) {
+              setNonStriker("");
+            }
+          }}
+          players={strikerOptions}
+          selectedId={striker}
+        />
+      ) : null}
+      {striker !== "" && nonStriker === "" ? (
+        <PlayerChoiceGrid
+          disabled={disabled}
+          label="Select non-striker"
+          onSelect={(value) => {
+            setNonStriker(value);
+
+            if (value === striker) {
+              setStriker("");
+            }
+          }}
+          players={nonStrikerOptions}
+          selectedId={nonStriker}
+        />
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        {striker !== "" ? (
+          <Button
+            disabled={disabled}
+            onClick={() => {
+              setStriker("");
+              setNonStriker("");
+            }}
+            type="button"
+            variant="outline"
+          >
+            Change striker
+          </Button>
+        ) : null}
+        {nonStriker !== "" ? (
+          <Button
+            disabled={disabled}
+            onClick={() => setNonStriker("")}
+            type="button"
+            variant="outline"
+          >
+            Back
+          </Button>
+        ) : null}
+      </div>
       <Button
+        className="h-12"
         disabled={
           disabled ||
           striker === "" ||
@@ -1008,21 +1318,11 @@ function SetBowlerForm({
 }
 
 function CreasePanel({
-  batters,
-  bowlers,
   state,
 }: {
-  batters: ScorerPlayingXiPlayer[];
-  bowlers: ScorerPlayingXiPlayer[];
   state: ScorerMatchStateResponse;
 }) {
   const innings = state.live?.innings;
-  const strikerXiId = xiIdForLivePlayer(batters, innings?.striker?.playerId);
-  const nonStrikerXiId = xiIdForLivePlayer(
-    batters,
-    innings?.nonStriker?.playerId
-  );
-  const bowlerXiId = xiIdForLivePlayer(bowlers, innings?.bowler?.playerId);
 
   return (
     <section className="rounded-sm border border-white/10 bg-card p-4">
@@ -1030,13 +1330,313 @@ function CreasePanel({
         Crease
       </h2>
       <dl className="mt-3 grid gap-2 text-sm">
-        <Detail label="Striker" value={innings?.striker?.name} meta={strikerXiId} />
-        <Detail label="Non-striker" value={innings?.nonStriker?.name} meta={nonStrikerXiId} />
-        <Detail label="Bowler" value={innings?.bowler?.name} meta={bowlerXiId} />
+        <Detail label="Striker" value={innings?.striker?.name} marker="*" />
+        <Detail label="Non-striker" value={innings?.nonStriker?.name} />
+        <Detail label="Bowler" value={innings?.bowler?.name} />
         <Detail label="Bowling" value={innings?.bowlingTeam} />
       </dl>
     </section>
   );
+}
+
+function WicketFlow({
+  baseInput,
+  disabled,
+  onCancel,
+  onDelivery,
+  state,
+}: {
+  baseInput: DeliveryInput;
+  disabled: boolean;
+  onCancel: () => void;
+  onDelivery: (actionKey: string, input: DeliveryInput) => void;
+  state: ScorerMatchStateResponse;
+}) {
+  const options = dismissalOptionsForDelivery(baseInput);
+  const [dismissalType, setDismissalType] = useState<DismissalType>(
+    options[0] ?? "BOWLED"
+  );
+  const [dismissedPlayingXiId, setDismissedPlayingXiId] =
+    useState<PlayerSelectValue>("");
+  const [fielderPlayingXiId, setFielderPlayingXiId] =
+    useState<PlayerSelectValue>("");
+  const [runOutRuns, setRunOutRuns] = useState(0);
+  const deterministicDismissed = deterministicDismissedBatter(
+    state,
+    dismissalType
+  );
+  const finalDismissedPlayingXiId =
+    deterministicDismissed ?? dismissedPlayingXiId;
+  const fielders = eligibleFielders(state);
+  const needsFielder = dismissalRequiresFielder(dismissalType);
+  const needsDismissedChoice = deterministicDismissed === undefined;
+  const selectedDismissed = activeBattingXi(state).find(
+    (player) => player.playingXiId === finalDismissedPlayingXiId
+  );
+  const selectedFielder = fielders.find(
+    (player) => player.playingXiId === fielderPlayingXiId
+  );
+  const canRecord =
+    finalDismissedPlayingXiId !== "" &&
+    (!needsFielder || fielderPlayingXiId !== "");
+
+  return (
+    <div className="grid gap-3 rounded-sm border border-white/10 bg-background p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-xs uppercase text-muted-foreground">
+            Wicket
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {selectedDismissed?.playerName
+              ? `Dismissed: ${selectedDismissed.playerName}`
+              : "Choose dismissal details"}
+          </p>
+        </div>
+        <Button disabled={disabled} onClick={onCancel} type="button" variant="ghost">
+          Cancel
+        </Button>
+      </div>
+      <DismissalChoiceGrid
+        disabled={disabled}
+        onSelect={(type) => {
+          setDismissalType(type);
+          setDismissedPlayingXiId("");
+          setFielderPlayingXiId("");
+        }}
+        options={options}
+        selected={dismissalType}
+      />
+      {needsDismissedChoice ? (
+        <PlayerChoiceGrid
+          disabled={disabled}
+          label={
+            dismissalType === "RUN_OUT"
+              ? "Who is out?"
+              : "Select dismissed batter"
+          }
+          onSelect={setDismissedPlayingXiId}
+          players={currentBatters(state)}
+          selectedId={dismissedPlayingXiId}
+        />
+      ) : null}
+      {dismissalType === "RUN_OUT" ? (
+        <div className="grid gap-2">
+          <p className="font-mono text-xs uppercase text-muted-foreground">
+            Runs completed
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {[0, 1, 2, 3].map((runs) => (
+              <Button
+                className="h-12"
+                disabled={disabled}
+                key={runs}
+                onClick={() => setRunOutRuns(runs)}
+                type="button"
+                variant={runOutRuns === runs ? "default" : "outline"}
+              >
+                {runs}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {needsFielder ? (
+        <PlayerChoiceGrid
+          disabled={disabled}
+          label={
+            dismissalType === "CAUGHT"
+              ? "Who took the catch?"
+              : "Responsible fielder"
+          }
+          onSelect={setFielderPlayingXiId}
+          players={fielders}
+          selectedId={fielderPlayingXiId}
+        />
+      ) : null}
+      {selectedFielder ? (
+        <p className="text-sm text-muted-foreground">
+          Fielder: {selectedFielder.playerName}
+        </p>
+      ) : null}
+      <Button
+        className="h-12"
+        disabled={disabled || !canRecord}
+        onClick={() => {
+          if (!canRecord) {
+            return;
+          }
+
+          const input = buildWicketDeliveryInput(baseInput, runOutRuns);
+
+          onDelivery(
+            `delivery:wicket:${dismissalType}:${finalDismissedPlayingXiId}:${fielderPlayingXiId || "none"}:${runOutRuns}`,
+            {
+              ...input,
+              wicket: {
+                dismissalType,
+                dismissedPlayingXiId: finalDismissedPlayingXiId,
+                fielderPlayingXiId: fielderPlayingXiId || undefined,
+              },
+            }
+          );
+        }}
+        type="button"
+        variant="destructive"
+      >
+        Record Wicket
+      </Button>
+    </div>
+  );
+}
+
+function buildWicketDeliveryInput(
+  baseInput: DeliveryInput,
+  runOutRuns: number
+): DeliveryInput {
+  if (runOutRuns <= 0) {
+    return baseInput;
+  }
+
+  if ((baseInput.wideRuns ?? 0) > 0) {
+    return {
+      ...baseInput,
+      wideRuns: Math.max(baseInput.wideRuns ?? 1, runOutRuns + 1),
+    };
+  }
+
+  return {
+    ...baseInput,
+    runsOffBat: runOutRuns,
+  };
+}
+
+function DismissalChoiceGrid({
+  disabled,
+  onSelect,
+  options,
+  selected,
+}: {
+  disabled: boolean;
+  onSelect: (value: DismissalType) => void;
+  options: DismissalType[];
+  selected: DismissalType;
+}) {
+  return (
+    <div className="grid gap-2">
+      <p className="font-mono text-xs uppercase text-muted-foreground">
+        Dismissal
+      </p>
+      <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+        {options.map((type) => (
+          <Button
+            className="min-h-14 justify-start whitespace-normal px-3 py-2 text-left"
+            disabled={disabled}
+            key={type}
+            onClick={() => onSelect(type)}
+            type="button"
+            variant={selected === type ? "default" : "outline"}
+          >
+            {type.replaceAll("_", " ")}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlayerChoiceGrid({
+  disabled,
+  label,
+  onSelect,
+  players,
+  selectedId,
+}: {
+  disabled: boolean;
+  label: string;
+  onSelect: (value: number) => void;
+  players: { playingXiId?: number; playerName?: string }[];
+  selectedId: PlayerSelectValue;
+}) {
+  return (
+    <div className="grid gap-2">
+      <p className="font-mono text-xs uppercase text-muted-foreground">{label}</p>
+      {players.length === 0 ? (
+        <p className="rounded-sm border border-white/10 bg-card p-3 text-sm text-muted-foreground">
+          No eligible players available.
+        </p>
+      ) : null}
+      <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+        {players.map((player) => {
+          const value = player.playingXiId;
+
+          return (
+            <Button
+              className="min-h-14 justify-start whitespace-normal px-3 py-2 text-left"
+              disabled={disabled || value === undefined}
+              key={`${label}:${value}:${player.playerName}`}
+              onClick={() => {
+                if (value !== undefined) {
+                  onSelect(value);
+                }
+              }}
+              type="button"
+              variant={selectedId === value ? "default" : "outline"}
+            >
+              {player.playerName ?? "Unnamed player"}
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SelectionSummary({
+  bowler,
+  nonStriker,
+  striker,
+}: {
+  bowler?: ScorerPlayingXiPlayer;
+  nonStriker?: ScorerPlayingXiPlayer;
+  striker?: ScorerPlayingXiPlayer;
+}) {
+  return (
+    <dl className="grid gap-2 rounded-sm border border-white/10 bg-background p-3 text-sm">
+      <SummaryLine label="Striker" marker="*" value={striker?.playerName} />
+      <SummaryLine label="Non-striker" value={nonStriker?.playerName} />
+      {bowler ? <SummaryLine label="Bowler" value={bowler.playerName} /> : null}
+    </dl>
+  );
+}
+
+function SummaryLine({
+  label,
+  marker,
+  value,
+}: {
+  label: string;
+  marker?: string;
+  value?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="font-mono text-xs uppercase text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="font-medium text-foreground">
+        {marker ? `${marker} ` : ""}
+        {value ?? "TBD"}
+      </dd>
+    </div>
+  );
+}
+
+function selectedCorrectionBall(
+  state: ScorerMatchStateResponse,
+  deliveryId: number
+) {
+  return state.live?.recentBalls?.find((ball) => ball.deliveryId === deliveryId);
 }
 
 function CompletedPanel({ matchId }: { matchId: number }) {
@@ -1052,41 +1652,6 @@ function CompletedPanel({ matchId }: { matchId: number }) {
         Open Scorecard
       </Link>
     </section>
-  );
-}
-
-function PlayerSelect({
-  allowEmpty,
-  disabled,
-  label,
-  onChange,
-  players,
-  value,
-}: {
-  allowEmpty?: boolean;
-  disabled: boolean;
-  label: string;
-  onChange: (value: PlayerSelectValue) => void;
-  players: ScorerPlayingXiPlayer[];
-  value: PlayerSelectValue;
-}) {
-  return (
-    <label className="grid gap-1 text-sm">
-      {label}
-      <select
-        className="min-h-12 rounded-sm border border-white/10 bg-background px-3"
-        disabled={disabled}
-        onChange={(event) => onChange(Number(event.target.value) || "")}
-        value={value}
-      >
-        <option value="">{allowEmpty ? "None" : "Choose player"}</option>
-        {players.map((player) => (
-          <option key={player.playingXiId} value={player.playingXiId}>
-            {player.playerName}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 
@@ -1128,11 +1693,11 @@ function Metric({
 
 function Detail({
   label,
-  meta,
+  marker,
   value,
 }: {
   label: string;
-  meta?: number;
+  marker?: string;
   value?: string;
 }) {
   return (
@@ -1141,12 +1706,8 @@ function Detail({
         {label}
       </dt>
       <dd className="text-right">
+        {marker ? `${marker} ` : ""}
         {value ?? "TBD"}
-        {meta ? (
-          <span className="ml-2 font-mono text-xs text-muted-foreground">
-            XI {meta}
-          </span>
-        ) : null}
       </dd>
     </div>
   );

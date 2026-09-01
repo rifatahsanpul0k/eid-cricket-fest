@@ -14,6 +14,32 @@ import type {
 } from "@/lib/api/schema-helpers";
 
 describe("ScorerConsole", () => {
+  it("server-renders start innings as player buttons without dropdowns", () => {
+    const html = renderToStaticMarkup(
+      <ScorerConsole initialState={startInningsState()} />
+    );
+
+    expect(html).toContain("Start Innings");
+    expect(html).toContain("Select striker");
+    expect(html).toMatch(/<button[^>]*>\s*Batter One\s*<\/button>/);
+    expect(html).not.toContain("<select");
+  });
+
+  it("server-renders primary run and extra controls as direct tap buttons", () => {
+    const html = renderToStaticMarkup(
+      <ScorerConsole initialState={liveScoringState()} />
+    );
+
+    expect(html).toContain("Score Ball");
+    expect(html).toMatch(/<button[^>]*>\s*0\s*<\/button>/);
+    expect(html).toMatch(/<button[^>]*>\s*4\s*<\/button>/);
+    expect(html).toMatch(/<button[^>]*>\s*WD\s*<\/button>/);
+    expect(html).toMatch(/<button[^>]*>\s*NB\s*<\/button>/);
+    expect(html).toMatch(/<button[^>]*>\s*B\s*<\/button>/);
+    expect(html).toMatch(/<button[^>]*>\s*LB\s*<\/button>/);
+    expect(html).not.toContain("Record Extra");
+  });
+
   it("server-renders one-click eligible bowlers after an over boundary", () => {
     const state = overBoundaryState();
 
@@ -53,7 +79,7 @@ describe("ScorerConsole", () => {
 
     expect(canUseIncomingBatterTransition(state)).toBe(false);
     expect(html).not.toContain("Incoming batter");
-    expect(html).toContain("Set Batters");
+    expect(html).toContain("Select striker");
   });
 
   it("builds one next-bowler mutation with a stable transition key", () => {
@@ -100,6 +126,65 @@ describe("ScorerConsole", () => {
     expect(transitionButtonDisabled(false, false, true)).toBe(true);
   });
 });
+
+function startInningsState() {
+  return {
+    match: {
+      id: 10,
+      matchNumber: 3,
+      status: "TOSS_COMPLETED",
+      teamA: { tournamentTeamId: 1, name: "Team A" },
+      teamB: { tournamentTeamId: 2, name: "Team B" },
+    },
+    nextInningsBattingTeamId: 1,
+    nextInningsBowlingTeamId: 2,
+    teamAPlayingXi: [
+      batter(11, 101, "Batter One"),
+      batter(12, 102, "Batter Two"),
+    ],
+    teamBPlayingXi: [
+      bowler(21, 201, "Bowler One"),
+      bowler(22, 202, "Bowler Two"),
+    ],
+  } satisfies ScorerMatchStateResponse;
+}
+
+function liveScoringState() {
+  return {
+    match: {
+      id: 10,
+      matchNumber: 3,
+      status: "LIVE",
+      teamA: { tournamentTeamId: 1, name: "Team A" },
+      teamB: { tournamentTeamId: 2, name: "Team B" },
+    },
+    live: {
+      matchId: 10,
+      status: "LIVE",
+      teamA: "Team A",
+      teamB: "Team B",
+      innings: {
+        inningsId: 5,
+        inningsNumber: 1,
+        battingTeam: "Team A",
+        bowlingTeam: "Team B",
+        scoreRevision: 1,
+        striker: { playerId: 101, name: "Batter One" },
+        nonStriker: { playerId: 102, name: "Batter Two" },
+        bowler: { playerId: 201, name: "Bowler One" },
+      },
+      recentBalls: [{ deliveryId: 1, sequence: 1, runs: 4, legal: true }],
+    },
+    teamAPlayingXi: [
+      batter(11, 101, "Batter One"),
+      batter(12, 102, "Batter Two"),
+    ],
+    teamBPlayingXi: [
+      bowler(21, 201, "Bowler One"),
+      bowler(22, 202, "Bowler Two"),
+    ],
+  } satisfies ScorerMatchStateResponse;
+}
 
 function overBoundaryState() {
   return {

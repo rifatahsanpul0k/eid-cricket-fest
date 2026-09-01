@@ -16,6 +16,48 @@ export type DeliveryInput = {
   wicket?: RecordDeliveryRequest["wicket"];
 };
 
+export type DismissalType = NonNullable<
+  NonNullable<RecordDeliveryRequest["wicket"]>["dismissalType"]
+>;
+
+const ORDINARY_DISMISSALS: DismissalType[] = [
+  "BOWLED",
+  "CAUGHT",
+  "LBW",
+  "RUN_OUT",
+  "STUMPED",
+  "HIT_WICKET",
+  "HIT_BALL_TWICE",
+  "OBSTRUCTING_FIELD",
+];
+
+const WIDE_DISMISSALS: DismissalType[] = [
+  "RUN_OUT",
+  "STUMPED",
+  "HIT_WICKET",
+  "OBSTRUCTING_FIELD",
+];
+
+const NO_BALL_DISMISSALS: DismissalType[] = [
+  "RUN_OUT",
+  "HIT_BALL_TWICE",
+  "OBSTRUCTING_FIELD",
+];
+
+const STRIKER_DISMISSALS = new Set<DismissalType>([
+  "BOWLED",
+  "CAUGHT",
+  "LBW",
+  "STUMPED",
+  "HIT_WICKET",
+]);
+
+const FIELDER_DISMISSALS = new Set<DismissalType>([
+  "CAUGHT",
+  "RUN_OUT",
+  "STUMPED",
+]);
+
 export class ScoringIntentStore {
   private readonly pending = new Map<string, string>();
   private readonly createId: () => string;
@@ -44,6 +86,93 @@ export class ScoringIntentStore {
   isPending(actionKey: string) {
     return this.pending.has(actionKey);
   }
+}
+
+export function wideOptions() {
+  return [1, 2, 3, 4, 5];
+}
+
+export function runOptions() {
+  return [0, 1, 2, 3, 4, 6];
+}
+
+export function extraRunOptions() {
+  return [1, 2, 3, 4];
+}
+
+export function buildWideDelivery(totalWideRuns: number): DeliveryInput {
+  return {
+    wideRuns: Math.max(1, totalWideRuns),
+  };
+}
+
+export function buildNoBallBatDelivery(runsOffBat: number): DeliveryInput {
+  return {
+    noBallRuns: 1,
+    runsOffBat,
+  };
+}
+
+export function buildNoBallByeDelivery(byeRuns: number): DeliveryInput {
+  return {
+    noBallRuns: 1,
+    byeRuns,
+  };
+}
+
+export function buildNoBallLegByeDelivery(legByeRuns: number): DeliveryInput {
+  return {
+    noBallRuns: 1,
+    legByeRuns,
+  };
+}
+
+export function buildByeDelivery(byeRuns: number): DeliveryInput {
+  return {
+    byeRuns,
+  };
+}
+
+export function buildLegByeDelivery(legByeRuns: number): DeliveryInput {
+  return {
+    legByeRuns,
+  };
+}
+
+export function dismissalOptionsForDelivery(input: DeliveryInput) {
+  if ((input.noBallRuns ?? 0) > 0) {
+    return NO_BALL_DISMISSALS;
+  }
+
+  if ((input.wideRuns ?? 0) > 0) {
+    return WIDE_DISMISSALS;
+  }
+
+  return ORDINARY_DISMISSALS;
+}
+
+export function deterministicDismissedBatter(
+  state: ScorerMatchStateResponse,
+  dismissalType: DismissalType
+) {
+  if (!STRIKER_DISMISSALS.has(dismissalType)) {
+    return undefined;
+  }
+
+  return xiIdForLivePlayer(
+    activeBattingXi(state),
+    state.live?.innings?.striker?.playerId
+  );
+}
+
+export function dismissalRequiresFielder(dismissalType: DismissalType) {
+  return FIELDER_DISMISSALS.has(dismissalType);
+}
+
+export function eligibleFielders(state: ScorerMatchStateResponse) {
+  return activeBowlingXi(state).filter(
+    (player) => player.playingXiId !== undefined
+  );
 }
 
 export function buildDeliveryRequest(

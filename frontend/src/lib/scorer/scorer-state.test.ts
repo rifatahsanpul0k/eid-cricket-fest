@@ -3,14 +3,27 @@ import { describe, expect, it } from "vitest";
 import {
   ScoringIntentStore,
   batterOptions,
+  buildByeDelivery,
   buildDeliveryRequest,
+  buildLegByeDelivery,
+  buildNoBallBatDelivery,
+  buildNoBallByeDelivery,
+  buildNoBallLegByeDelivery,
+  buildWideDelivery,
   canCorrectDelivery,
   canUndo,
   deliveryLabel,
+  deterministicDismissedBatter,
   eligibleActiveBatters,
+  dismissalOptionsForDelivery,
+  dismissalRequiresFielder,
   eligibleIncomingBatters,
+  eligibleFielders,
   eligibleNextOverBowlers,
+  extraRunOptions,
+  runOptions,
   wicketDismissalOptions,
+  wideOptions,
   validateDeliveryInput,
 } from "@/lib/scorer/scorer-state";
 import type { ScorerMatchStateResponse } from "@/lib/api/schema-helpers";
@@ -55,6 +68,45 @@ describe("scorer-state", () => {
       "wide"
     );
     expect(validateDeliveryInput({ noBallRuns: 1, runsOffBat: 1 })).toBeUndefined();
+  });
+
+  it("builds quick scoring payload inputs without mixing incompatible extras", () => {
+    expect(runOptions()).toEqual([0, 1, 2, 3, 4, 6]);
+    expect(wideOptions()).toEqual([1, 2, 3, 4, 5]);
+    expect(extraRunOptions()).toEqual([1, 2, 3, 4]);
+    expect(buildWideDelivery(2)).toEqual({ wideRuns: 2 });
+    expect(buildNoBallBatDelivery(4)).toEqual({
+      noBallRuns: 1,
+      runsOffBat: 4,
+    });
+    expect(buildNoBallByeDelivery(2)).toEqual({
+      noBallRuns: 1,
+      byeRuns: 2,
+    });
+    expect(buildNoBallLegByeDelivery(1)).toEqual({
+      noBallRuns: 1,
+      legByeRuns: 1,
+    });
+    expect(buildByeDelivery(3)).toEqual({ byeRuns: 3 });
+    expect(buildLegByeDelivery(4)).toEqual({ legByeRuns: 4 });
+  });
+
+  it("filters dismissal choices for ordinary, wide, and no-ball deliveries", () => {
+    expect(dismissalOptionsForDelivery({ runsOffBat: 0 })).toContain("BOWLED");
+    expect(dismissalOptionsForDelivery({ wideRuns: 1 })).toEqual([
+      "RUN_OUT",
+      "STUMPED",
+      "HIT_WICKET",
+      "OBSTRUCTING_FIELD",
+    ]);
+    expect(dismissalOptionsForDelivery({ noBallRuns: 1 })).toEqual([
+      "RUN_OUT",
+      "HIT_BALL_TWICE",
+      "OBSTRUCTING_FIELD",
+    ]);
+    expect(dismissalOptionsForDelivery({ noBallRuns: 1 })).not.toContain(
+      "CAUGHT"
+    );
   });
 
   it("formats recent-ball labels only from exposed live ball fields", () => {
@@ -139,6 +191,35 @@ describe("scorer-state", () => {
 
     expect(eligibleIncomingBatters(state).map((player) => player.playingXiId))
       .toEqual([3]);
+  });
+
+  it("defaults deterministic striker dismissals and requests fielders only when needed", () => {
+    const state = {
+      live: {
+        innings: {
+          battingTeam: "Team A",
+          bowlingTeam: "Team B",
+          striker: { playerId: 101, name: "A" },
+          nonStriker: { playerId: 102, name: "B" },
+        },
+      },
+      teamAPlayingXi: [
+        { playingXiId: 1, playerId: 101, teamName: "Team A", playerName: "A" },
+        { playingXiId: 2, playerId: 102, teamName: "Team A", playerName: "B" },
+      ],
+      teamBPlayingXi: [
+        { playingXiId: 10, teamName: "Team B", playerName: "Keeper" },
+      ],
+    } as ScorerMatchStateResponse;
+
+    expect(deterministicDismissedBatter(state, "BOWLED")).toBe(1);
+    expect(deterministicDismissedBatter(state, "LBW")).toBe(1);
+    expect(deterministicDismissedBatter(state, "RUN_OUT")).toBeUndefined();
+    expect(dismissalRequiresFielder("CAUGHT")).toBe(true);
+    expect(dismissalRequiresFielder("STUMPED")).toBe(true);
+    expect(dismissalRequiresFielder("BOWLED")).toBe(false);
+    expect(eligibleFielders(state).map((player) => player.playingXiId))
+      .toEqual([10]);
   });
 
   it("excludes only the previous-over bowler from next-over choices", () => {
