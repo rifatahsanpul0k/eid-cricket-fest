@@ -16,7 +16,7 @@ export default async function TeamsPage() {
 
   const currentEdition = await getCurrentEditionData();
 
-  if (currentEdition.status === "unavailable") {
+  if (currentEdition.status !== "ready") {
     return (
       <main>
         <PublicPageHeader

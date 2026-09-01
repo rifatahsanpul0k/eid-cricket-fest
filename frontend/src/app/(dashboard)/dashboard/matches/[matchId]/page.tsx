@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import type {
   MatchResponse,
+  MatchSetupDetailsResponse,
   TournamentTeamResponse,
   Venue,
 } from "@/lib/api/schema-helpers";
@@ -17,6 +18,7 @@ import { matchStageLabel, matchStatusLabel } from "@/lib/cricket/match-labels";
 import {
   getDashboardMatch,
   getDraftPicksForMatchAdmin,
+  getMatchSetupDetails,
   getScorers,
   getVenues,
 } from "@/lib/dashboard/match-admin-api";
@@ -84,18 +86,22 @@ export default async function DashboardMatchAdminPage({
     return <Unavailable message={matchResult.error.detail ?? matchResult.error.title} />;
   }
 
-  const draftPicks =
+  const persistedMatchId = matchResult.data.id ?? id;
+  const [draftPicks, setupDetails] = await Promise.all([
     draft?.ok && draft.data.id
-      ? await getDraftPicksForMatchAdmin(draft.data.id)
-      : undefined;
-  const action = `/api/dashboard/matches/${matchResult.data.id}`;
-  const returnTo = `/dashboard/matches/${matchResult.data.id}`;
+      ? getDraftPicksForMatchAdmin(draft.data.id)
+      : undefined,
+    getMatchSetupDetails(persistedMatchId),
+  ]);
+  const action = `/api/dashboard/matches/${persistedMatchId}`;
+  const returnTo = `/dashboard/matches/${persistedMatchId}`;
   const editionTeams = teams.ok ? teams.data : [];
   const teamA = findEditionTeam(editionTeams, matchResult.data.teamA?.tournamentTeamId);
   const teamB = findEditionTeam(editionTeams, matchResult.data.teamB?.tournamentTeamId);
   const picks = draftPicks?.ok ? draftPicks.data : [];
   const playingXiSize = currentEdition.edition.playingXiSize ?? 11;
   const publicHref = publicMatchHref(matchResult.data);
+  const setup = setupDetails.ok ? setupDetails.data : undefined;
 
   return (
     <main className="flex-1">
@@ -121,6 +127,7 @@ export default async function DashboardMatchAdminPage({
           <ScorerPanel
             action={action}
             returnTo={returnTo}
+            setup={setup}
             scorers={scorers.ok ? scorers.data : []}
           />
         </div>
@@ -146,6 +153,7 @@ export default async function DashboardMatchAdminPage({
               action={action}
               playingXiSize={playingXiSize}
               returnTo={returnTo}
+              setup={setup?.teamAPlayingXi}
               team={teamA}
               candidates={rosterCandidatesForTeam({ picks, team: teamA })}
             />
@@ -153,6 +161,7 @@ export default async function DashboardMatchAdminPage({
               action={action}
               playingXiSize={playingXiSize}
               returnTo={returnTo}
+              setup={setup?.teamBPlayingXi}
               team={teamB}
               candidates={rosterCandidatesForTeam({ picks, team: teamB })}
             />
@@ -219,18 +228,9 @@ function MatchSummary({
 }
 
 function ReadinessPanel({ match }: { match: MatchResponse }) {
-  const status = match.status;
-  const setupAccepted =
-    status === "READY" ||
-    status === "TOSS_COMPLETED" ||
-    status === "LIVE" ||
-    status === "INNINGS_BREAK" ||
-    status === "COMPLETED";
-  const tossDone =
-    status === "TOSS_COMPLETED" ||
-    status === "LIVE" ||
-    status === "INNINGS_BREAK" ||
-    status === "COMPLETED";
+  const playingXisSubmitted =
+    Boolean(match.teamAPlayingXiSubmitted) &&
+    Boolean(match.teamBPlayingXiSubmitted);
 
   return (
     <section className="rounded-sm border border-white/10 bg-card p-5">
@@ -240,14 +240,13 @@ function ReadinessPanel({ match }: { match: MatchResponse }) {
       <div className="mt-4 grid gap-2 text-sm sm:grid-cols-5">
         <ReadinessItem done={Boolean(match.venue)} label="Venue" />
         <ReadinessItem done={Boolean(match.scheduledAt)} label="Schedule" />
-        <ReadinessItem done={setupAccepted} label="Scorer" />
-        <ReadinessItem done={setupAccepted} label="Playing XIs" />
-        <ReadinessItem done={tossDone} label="Toss" />
+        <ReadinessItem done={Boolean(match.scorerAssigned)} label="Scorer" />
+        <ReadinessItem done={playingXisSubmitted} label="Playing XIs" />
+        <ReadinessItem done={Boolean(match.tossCompleted)} label="Toss" />
       </div>
       <p className="mt-4 text-sm text-muted-foreground">
-        Backend match status is the authority. Detailed scorer and XI readback
-        is not exposed by the current backend read model; once scorer and both
-        XIs are accepted, status advances to ready.
+        Readiness is based on saved match setup: venue, schedule, scorer, both
+        Playing XIs, and toss.
       </p>
     </section>
   );
@@ -319,12 +318,18 @@ function SchedulePanel({
 function ScorerPanel({
   action,
   returnTo,
+  setup,
   scorers,
 }: {
   action: string;
   returnTo: string;
+  setup?: MatchSetupDetailsResponse;
   scorers: { displayName?: string; email?: string; id?: number }[];
 }) {
+  const selectedScorer =
+    setup?.scorers?.find((scorer) => scorer.primary) ?? setup?.scorers?.[0];
+  const scorerOptions = mergeScorerOptions(scorers, setup?.scorers ?? []);
+
   return (
     <section className="rounded-sm border border-white/10 bg-card p-5">
       <h2 className="font-heading text-2xl font-bold uppercase tracking-normal">
@@ -337,12 +342,13 @@ function ScorerPanel({
           User
           <select
             className="min-h-11 rounded-sm border border-white/10 bg-background px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            disabled={scorers.length === 0}
+            defaultValue={selectedScorer?.userId ?? ""}
+            disabled={scorerOptions.length === 0}
             name="scorerUserId"
             required
           >
             <option value="">Select scorer</option>
-            {scorers.map((scorer) => (
+            {scorerOptions.map((scorer) => (
               <option key={scorer.id} value={scorer.id}>
                 {scorer.displayName ?? scorer.email ?? `User ${scorer.id}`}
               </option>
@@ -350,7 +356,11 @@ function ScorerPanel({
           </select>
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input defaultChecked name="primary" type="checkbox" />
+          <input
+            defaultChecked={selectedScorer?.primary ?? true}
+            name="primary"
+            type="checkbox"
+          />
           Primary scorer
         </label>
         <ReviewSubmitButton>Assign scorer</ReviewSubmitButton>
@@ -367,12 +377,14 @@ function TeamXiPanel({
   candidates,
   playingXiSize,
   returnTo,
+  setup,
   team,
 }: {
   action: string;
   candidates: ReturnType<typeof rosterCandidatesForTeam>;
   playingXiSize: number;
   returnTo: string;
+  setup?: MatchSetupDetailsResponse["teamAPlayingXi"];
   team?: TournamentTeamResponse;
 }) {
   if (!team?.id) {
@@ -396,6 +408,10 @@ function TeamXiPanel({
     <PlayingXiForm
       action={action}
       candidates={candidates}
+      initialRegistrationIds={setup?.registrationIds}
+      initialWicketkeeperRegistrationId={
+        setup?.wicketkeeperRegistrationId ?? undefined
+      }
       playingXiSize={playingXiSize}
       returnTo={returnTo}
       teamName={team.teamName ?? `Team ${team.id}`}
@@ -568,6 +584,31 @@ function findEditionTeam(
   tournamentTeamId?: number
 ) {
   return teams.find((team) => team.id === tournamentTeamId);
+}
+
+function mergeScorerOptions(
+  scorers: { displayName?: string; email?: string; id?: number }[],
+  savedScorers: NonNullable<MatchSetupDetailsResponse["scorers"]>
+) {
+  const byId = new Map<number, { displayName?: string; email?: string; id?: number }>();
+
+  for (const scorer of scorers) {
+    if (scorer.id !== undefined) {
+      byId.set(scorer.id, scorer);
+    }
+  }
+
+  for (const scorer of savedScorers) {
+    if (scorer.userId !== undefined && !byId.has(scorer.userId)) {
+      byId.set(scorer.userId, {
+        displayName: scorer.displayName,
+        email: scorer.email,
+        id: scorer.userId,
+      });
+    }
+  }
+
+  return Array.from(byId.values());
 }
 
 function toDhakaDateTimeLocal(value?: string) {

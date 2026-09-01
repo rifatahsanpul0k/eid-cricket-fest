@@ -41,6 +41,8 @@ type ServerPayload = {
   state?: ScorerMatchStateResponse;
 };
 
+type PlayerSelectValue = number | "";
+
 const wicketTypes = [
   "BOWLED",
   "CAUGHT",
@@ -471,10 +473,12 @@ function WicketPanel({
   disabled: boolean;
   onDelivery: (actionKey: string, input: DeliveryInput) => void;
 }) {
-  const [dismissedPlayingXiId, setDismissedPlayingXiId] = useState<number>();
+  const [dismissedPlayingXiId, setDismissedPlayingXiId] =
+    useState<PlayerSelectValue>("");
   const [dismissalType, setDismissalType] =
     useState<(typeof wicketTypes)[number]>("BOWLED");
-  const [fielderPlayingXiId, setFielderPlayingXiId] = useState<number>();
+  const [fielderPlayingXiId, setFielderPlayingXiId] =
+    useState<PlayerSelectValue>("");
 
   return (
     <section className="rounded-sm border border-white/10 bg-card p-4">
@@ -515,13 +519,13 @@ function WicketPanel({
           value={fielderPlayingXiId}
         />
         <Button
-          disabled={disabled || !dismissedPlayingXiId}
+          disabled={disabled || dismissedPlayingXiId === ""}
           onClick={() =>
             onDelivery(`delivery:wicket:${dismissalType}:${dismissedPlayingXiId}`, {
               wicket: {
                 dismissalType,
-                dismissedPlayingXiId: dismissedPlayingXiId ?? 0,
-                fielderPlayingXiId,
+                dismissedPlayingXiId: dismissedPlayingXiId || 0,
+                fielderPlayingXiId: fielderPlayingXiId || undefined,
               },
             })
           }
@@ -685,9 +689,9 @@ function StartInningsForm({
     bowlerPlayingXiId: number;
   }) => void;
 }) {
-  const [striker, setStriker] = useState<number>();
-  const [nonStriker, setNonStriker] = useState<number>();
-  const [bowler, setBowler] = useState<number>();
+  const [striker, setStriker] = useState<PlayerSelectValue>("");
+  const [nonStriker, setNonStriker] = useState<PlayerSelectValue>("");
+  const [bowler, setBowler] = useState<PlayerSelectValue>("");
 
   return (
     <section className="rounded-sm border border-white/10 bg-card p-4">
@@ -717,12 +721,18 @@ function StartInningsForm({
           value={bowler}
         />
         <Button
-          disabled={disabled || !striker || !nonStriker || !bowler || striker === nonStriker}
+          disabled={
+            disabled ||
+            striker === "" ||
+            nonStriker === "" ||
+            bowler === "" ||
+            striker === nonStriker
+          }
           onClick={() =>
             onStart({
-              strikerPlayingXiId: striker ?? 0,
-              nonStrikerPlayingXiId: nonStriker ?? 0,
-              bowlerPlayingXiId: bowler ?? 0,
+              strikerPlayingXiId: striker || 0,
+              nonStrikerPlayingXiId: nonStriker || 0,
+              bowlerPlayingXiId: bowler || 0,
             })
           }
           type="button"
@@ -745,8 +755,8 @@ function SetBattersForm({
   inningsId: number;
   mutate: (body: MutationBody, actionKey: string) => void;
 }) {
-  const [striker, setStriker] = useState<number>();
-  const [nonStriker, setNonStriker] = useState<number>();
+  const [striker, setStriker] = useState<PlayerSelectValue>("");
+  const [nonStriker, setNonStriker] = useState<PlayerSelectValue>("");
 
   return (
     <div className="grid gap-2">
@@ -765,15 +775,20 @@ function SetBattersForm({
         value={nonStriker}
       />
       <Button
-        disabled={disabled || !striker || !nonStriker || striker === nonStriker}
+        disabled={
+          disabled ||
+          striker === "" ||
+          nonStriker === "" ||
+          striker === nonStriker
+        }
         onClick={() =>
           mutate(
             {
               action: "set-batters",
               inningsId,
               payload: {
-                strikerPlayingXiId: striker ?? 0,
-                nonStrikerPlayingXiId: nonStriker ?? 0,
+                strikerPlayingXiId: striker || 0,
+                nonStrikerPlayingXiId: nonStriker || 0,
               },
             },
             "set-batters"
@@ -799,7 +814,7 @@ function SetBowlerForm({
   inningsId: number;
   mutate: (body: MutationBody, actionKey: string) => void;
 }) {
-  const [bowler, setBowler] = useState<number>();
+  const [bowler, setBowler] = useState<PlayerSelectValue>("");
 
   return (
     <div className="grid gap-2">
@@ -811,14 +826,14 @@ function SetBowlerForm({
         value={bowler}
       />
       <Button
-        disabled={disabled || !bowler}
+        disabled={disabled || bowler === ""}
         onClick={() =>
           mutate(
             {
               action: "set-bowler",
               inningsId,
               payload: {
-                bowlerPlayingXiId: bowler ?? 0,
+                bowlerPlayingXiId: bowler || 0,
               },
             },
             "set-bowler"
@@ -892,9 +907,9 @@ function PlayerSelect({
   allowEmpty?: boolean;
   disabled: boolean;
   label: string;
-  onChange: (value: number | undefined) => void;
+  onChange: (value: PlayerSelectValue) => void;
   players: ScorerPlayingXiPlayer[];
-  value?: number;
+  value: PlayerSelectValue;
 }) {
   return (
     <label className="grid gap-1 text-sm">
@@ -902,8 +917,8 @@ function PlayerSelect({
       <select
         className="min-h-12 rounded-sm border border-white/10 bg-background px-3"
         disabled={disabled}
-        onChange={(event) => onChange(Number(event.target.value) || undefined)}
-        value={value ?? ""}
+        onChange={(event) => onChange(Number(event.target.value) || "")}
+        value={value}
       >
         <option value="">{allowEmpty ? "None" : "Choose player"}</option>
         {players.map((player) => (

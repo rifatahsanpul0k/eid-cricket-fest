@@ -40,6 +40,8 @@ public class FixtureService {
     private final VenueRepository venueRepository;
     private final TournamentEditionRepository editionRepository;
     private final TournamentTeamRepository tournamentTeamRepository;
+    private final MatchScorerRepository scorerRepository;
+    private final PlayingXiEntryRepository playingXiRepository;
     private final PageableFactory pageableFactory;
 
     public FixtureService(
@@ -47,12 +49,16 @@ public class FixtureService {
             VenueRepository venueRepository,
             TournamentEditionRepository editionRepository,
             TournamentTeamRepository tournamentTeamRepository,
+            MatchScorerRepository scorerRepository,
+            PlayingXiEntryRepository playingXiRepository,
             PageableFactory pageableFactory
     ) {
         this.matchRepository = matchRepository;
         this.venueRepository = venueRepository;
         this.editionRepository = editionRepository;
         this.tournamentTeamRepository = tournamentTeamRepository;
+        this.scorerRepository = scorerRepository;
+        this.playingXiRepository = playingXiRepository;
         this.pageableFactory = pageableFactory;
     }
 
@@ -162,10 +168,7 @@ public class FixtureService {
             teams.add(1, last);
         }
 
-        return matchRepository.saveAll(generated)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        return toResponses(matchRepository.saveAll(generated));
     }
 
     public MatchResponse scheduleMatch(
@@ -199,11 +202,9 @@ public class FixtureService {
             Long editionId
     ) {
 
-        return matchRepository
-                .findDetailedByEditionId(editionId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        return toResponses(
+                matchRepository.findDetailedByEditionId(editionId)
+        );
     }
 
     @Transactional(readOnly = true)
@@ -243,13 +244,19 @@ public class FixtureService {
                                 .involvesTeam(teamId)
                 );
 
+        var pageResult =
+                matchRepository.findAll(
+                        spec,
+                        pageable
+                );
+
+        MatchReadiness readiness =
+                readinessFor(pageResult.getContent());
+
         var matches =
-                matchRepository
-                        .findAll(
-                                spec,
-                                pageable
-                        )
-                        .map(this::toResponse);
+                pageResult.map(match ->
+                        toResponse(match, readiness)
+                );
 
         return PageResponse.from(matches);
     }
@@ -265,8 +272,31 @@ public class FixtureService {
                 );
     }
 
+    private List<MatchResponse> toResponses(
+            List<CricketMatch> matches
+    ) {
+
+        MatchReadiness readiness =
+                readinessFor(matches);
+
+        return matches
+                .stream()
+                .map(match ->
+                        toResponse(match, readiness)
+                )
+                .toList();
+    }
+
+    private MatchResponse toResponse(CricketMatch match) {
+        return toResponse(
+                match,
+                readinessFor(List.of(match))
+        );
+    }
+
     private MatchResponse toResponse(
-            CricketMatch match
+            CricketMatch match,
+            MatchReadiness readiness
     ) {
 
         MatchResponse.VenueInfo venue = null;
@@ -301,7 +331,115 @@ public class FixtureService {
 
                 match.getOversPerInnings(),
                 venue,
-                match.getScheduledAt()
+                match.getScheduledAt(),
+                readiness.scorerAssigned(match),
+                readiness.playingXiSubmitted(
+                        match,
+                        match.getTeamA().getId()
+                ),
+                readiness.playingXiSubmitted(
+                        match,
+                        match.getTeamB().getId()
+                ),
+                readiness.tossCompleted(match)
         );
     }
+
+    private MatchReadiness readinessFor(
+            List<CricketMatch> matches
+    ) {
+
+        if (matches.isEmpty()) {
+            return MatchReadiness.empty();
+        }
+
+        Set<Long> matchIds =
+                new HashSet<>();
+
+        for (CricketMatch match : matches) {
+            matchIds.add(match.getId());
+        }
+
+        Set<Long> matchesWithScorer =
+                new HashSet<>(
+                        scorerRepository
+                                .findMatchIdsWithScorer(matchIds)
+                );
+
+        Map<TeamSubmissionKey, Long> playingXiCounts =
+                new HashMap<>();
+
+        for (Object[] row :
+                playingXiRepository
+                        .countSubmittedByMatchAndTeam(matchIds)) {
+
+            playingXiCounts.put(
+                    new TeamSubmissionKey(
+                            (Long) row[0],
+                            (Long) row[1]
+                    ),
+                    (Long) row[2]
+            );
+        }
+
+        return new MatchReadiness(
+                matchesWithScorer,
+                playingXiCounts
+        );
+    }
+
+    private record MatchReadiness(
+            Set<Long> matchesWithScorer,
+            Map<TeamSubmissionKey, Long> playingXiCounts
+    ) {
+
+        static MatchReadiness empty() {
+            return new MatchReadiness(
+                    Set.of(),
+                    Map.of()
+            );
+        }
+
+        boolean scorerAssigned(CricketMatch match) {
+            return matchesWithScorer.contains(match.getId());
+        }
+
+        boolean tossCompleted(CricketMatch match) {
+            MatchStatus status =
+                    match.getStatus();
+
+            return status == MatchStatus.TOSS_COMPLETED
+                    || status == MatchStatus.LIVE
+                    || status == MatchStatus.INNINGS_BREAK
+                    || status == MatchStatus.COMPLETED;
+        }
+
+        boolean playingXiSubmitted(
+                CricketMatch match,
+                Long tournamentTeamId
+        ) {
+
+            long submitted =
+                    playingXiCounts.getOrDefault(
+                            new TeamSubmissionKey(
+                                    match.getId(),
+                                    tournamentTeamId
+                            ),
+                            0L
+                    );
+
+            Integer required =
+                    match.getTournamentEdition()
+                            .getPlayingXiSize();
+
+            return required != null
+                    && required > 0
+                    && submitted == required;
+        }
+    }
+
+    private record TeamSubmissionKey(
+            Long matchId,
+            Long tournamentTeamId
+    ) {}
 }

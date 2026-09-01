@@ -30,7 +30,7 @@ export default async function StatisticsPage() {
 
   const currentEdition = await getCurrentEditionData();
 
-  if (currentEdition.status === "unavailable") {
+  if (currentEdition.status !== "ready") {
     return (
       <main>
         <PublicPageHeader

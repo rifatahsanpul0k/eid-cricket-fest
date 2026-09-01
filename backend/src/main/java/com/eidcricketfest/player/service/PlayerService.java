@@ -14,6 +14,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -169,6 +170,21 @@ public class PlayerService {
                         .map(this::toResponse);
 
         return PageResponse.from(result);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlayerCategoryResponse> getActiveCategories() {
+
+        return categoryRepository.findByActiveTrueOrderByIdAsc()
+                .stream()
+                .map(category ->
+                        new PlayerCategoryResponse(
+                                category.getId(),
+                                category.getCode(),
+                                category.getName()
+                        )
+                )
+                .toList();
     }
 
     private PlayerCategory findCategory(Short id) {

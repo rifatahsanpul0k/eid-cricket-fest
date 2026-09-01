@@ -18,7 +18,7 @@ export default async function LivePage() {
 
   const currentEdition = await getCurrentEditionData();
 
-  if (currentEdition.status === "unavailable") {
+  if (currentEdition.status !== "ready") {
     return (
       <main>
         <LiveHero />

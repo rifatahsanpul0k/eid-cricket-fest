@@ -7,6 +7,7 @@ import {
   getMyPayments,
   getMyProfile,
   getMyRegistration,
+  getPlayerCategories,
 } from "@/lib/auth/account-api";
 import {
   paymentStatusMessage,
@@ -20,13 +21,6 @@ export const metadata: Metadata = {
   title: "Registration",
 };
 
-const categories = [
-  { id: 1, label: "Batsman" },
-  { id: 2, label: "Bowler" },
-  { id: 3, label: "All-rounder" },
-  { id: 4, label: "Wicketkeeper" },
-];
-
 const paymentMethods = ["CASH", "BKASH", "NAGAD", "BANK", "OTHER"] as const;
 
 export default async function RegistrationPage({
@@ -34,10 +28,11 @@ export default async function RegistrationPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [params, currentEdition, profileResult] = await Promise.all([
+  const [params, currentEdition, profileResult, categories] = await Promise.all([
     searchParams,
     getCurrentEditionData(),
     getMyProfile(),
+    getPlayerCategories(),
   ]);
   const profile =
     profileResult && "ok" in profileResult && profileResult.ok
@@ -55,7 +50,13 @@ export default async function RegistrationPage({
   const edition =
     currentEdition.status === "ready" ? currentEdition.edition : undefined;
   const registrationOpen = edition?.status === "REGISTRATION_OPEN";
-  const canRegister = Boolean(profile && edition && registrationOpen && !registration);
+  const canRegister = Boolean(
+    profile &&
+      edition &&
+      registrationOpen &&
+      !registration &&
+      categories.length > 0
+  );
   const fee = Number(registration?.feeAmount ?? edition?.registrationFee ?? 0);
 
   return (
@@ -128,7 +129,7 @@ export default async function RegistrationPage({
                 <option value="">Select category</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
-                    {category.label}
+                    {category.name}
                   </option>
                 ))}
               </select>
@@ -137,6 +138,16 @@ export default async function RegistrationPage({
               Submit registration
             </Button>
           </form>
+        ) : null}
+        {profile && edition && registrationOpen && !registration && categories.length === 0 ? (
+          <div className="rounded-sm border border-white/10 bg-card p-5 text-sm">
+            <h2 className="font-heading text-2xl font-bold uppercase tracking-normal">
+              Registration category unavailable
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              No active player categories are available from the backend yet.
+            </p>
+          </div>
         ) : null}
         {registration ? (
           <div className="rounded-sm border border-white/10 bg-card p-5 text-sm">

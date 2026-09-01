@@ -4,6 +4,7 @@ import type {
   DraftPickResponse,
   KnockoutBracketResponse,
   MatchResponse,
+  MatchSetupDetailsResponse,
   NoResultRequest,
   PageResponseMatchResponse,
   RecordTossRequest,
@@ -57,6 +58,14 @@ export async function getDashboardMatch(editionId: number, matchId: number) {
         },
         status: 404,
       };
+}
+
+export async function getMatchSetupDetails(matchId: number) {
+  return backendRequest<MatchSetupDetailsResponse>(
+    `/api/v1/matches/${matchId}/setup`,
+    {},
+    { authenticated: true }
+  );
 }
 
 export async function getVenues() {

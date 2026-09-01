@@ -13,14 +13,14 @@ export type HomePageData =
       standings: StandingRow[];
     }
   | {
-      status: "unavailable";
+      status: "not_configured" | "unavailable";
       message: string;
     };
 
 export async function getHomePageData(): Promise<HomePageData> {
   const currentEdition = await getCurrentEditionData();
 
-  if (currentEdition.status === "unavailable") {
+  if (currentEdition.status !== "ready") {
     return currentEdition;
   }
 

@@ -296,6 +296,15 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Match setup readback
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/matches/*/setup"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
                         // Assign scorer
                         .requestMatchers(
                                 HttpMethod.POST,

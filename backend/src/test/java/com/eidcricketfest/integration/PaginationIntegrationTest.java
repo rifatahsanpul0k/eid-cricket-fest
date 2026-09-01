@@ -419,6 +419,132 @@ class PaginationIntegrationTest
                         .value(2));
     }
 
+    @Test
+    void matchesShouldExposeSetupReadiness()
+            throws Exception {
+
+        String tag =
+                marker();
+
+        Long editionId =
+                createEdition(tag);
+
+        jdbcTemplate.update(
+                """
+                UPDATE tournament_editions
+                SET playing_xi_size = 2
+                WHERE id = ?
+                """,
+                editionId
+        );
+
+        Long teamA =
+                createTournamentTeam(
+                        editionId,
+                        "Ready Team A " + tag,
+                        "RA" + tag.substring(0, 8)
+                );
+
+        Long teamB =
+                createTournamentTeam(
+                        editionId,
+                        "Ready Team B " + tag,
+                        "RB" + tag.substring(0, 8)
+                );
+
+        Long matchId =
+                createMatch(
+                        editionId,
+                        teamA,
+                        teamB,
+                        "LEAGUE",
+                        "SCHEDULED",
+                        1
+                );
+
+        Long scorerUserId =
+                createUser(
+                        "Ready Scorer " + tag,
+                        "ready-scorer-" + tag + "@test.com"
+                );
+
+        jdbcTemplate.update(
+                """
+                INSERT INTO match_scorers (
+                    match_id,
+                    user_id,
+                    primary_scorer
+                )
+                VALUES (
+                    ?,
+                    ?,
+                    true
+                )
+                """,
+                matchId,
+                scorerUserId
+        );
+
+        Short categoryId =
+                categoryId("ALL_ROUNDER");
+
+        Long firstRegistration =
+                createRegistration(
+                        editionId,
+                        createPlayer("Ready A One " + tag, categoryId),
+                        categoryId,
+                        "APPROVED"
+                );
+
+        Long secondRegistration =
+                createRegistration(
+                        editionId,
+                        createPlayer("Ready A Two " + tag, categoryId),
+                        categoryId,
+                        "APPROVED"
+                );
+
+        createPlayingXiEntry(
+                matchId,
+                editionId,
+                teamA,
+                firstRegistration,
+                true,
+                false
+        );
+
+        createPlayingXiEntry(
+                matchId,
+                editionId,
+                teamA,
+                secondRegistration,
+                false,
+                true
+        );
+
+        mockMvc.perform(
+                        get(
+                                "/api/v1/tournament-editions/{editionId}/matches",
+                                editionId
+                        )
+                                .param(
+                                        "teamId",
+                                        String.valueOf(teamA)
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id")
+                        .value(matchId))
+                .andExpect(jsonPath("$.content[0].scorerAssigned")
+                        .value(true))
+                .andExpect(jsonPath("$.content[0].teamAPlayingXiSubmitted")
+                        .value(true))
+                .andExpect(jsonPath("$.content[0].teamBPlayingXiSubmitted")
+                        .value(false))
+                .andExpect(jsonPath("$.content[0].tossCompleted")
+                        .value(false));
+    }
+
     private TestTokens organizer()
             throws Exception {
 
@@ -724,7 +850,7 @@ class PaginationIntegrationTest
         );
     }
 
-    private void createMatch(
+    private Long createMatch(
             Long editionId,
             Long teamAId,
             Long teamBId,
@@ -733,7 +859,7 @@ class PaginationIntegrationTest
             int matchNumber
     ) {
 
-        jdbcTemplate.update(
+        return jdbcTemplate.queryForObject(
                 """
                 INSERT INTO matches (
                     tournament_edition_id,
@@ -761,13 +887,83 @@ class PaginationIntegrationTest
                     CURRENT_TIMESTAMP,
                     0
                 )
+                RETURNING id
                 """,
+                Long.class,
                 editionId,
                 teamAId,
                 teamBId,
                 stage,
                 matchNumber,
                 status
+        );
+    }
+
+    private Long createUser(
+            String displayName,
+            String email
+    ) {
+
+        return jdbcTemplate.queryForObject(
+                """
+                INSERT INTO users (
+                    display_name,
+                    email,
+                    password_hash,
+                    enabled,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    ?,
+                    ?,
+                    '{noop}password',
+                    true,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP
+                )
+                RETURNING id
+                """,
+                Long.class,
+                displayName,
+                email
+        );
+    }
+
+    private void createPlayingXiEntry(
+            Long matchId,
+            Long editionId,
+            Long tournamentTeamId,
+            Long registrationId,
+            boolean captain,
+            boolean wicketkeeper
+    ) {
+
+        jdbcTemplate.update(
+                """
+                INSERT INTO playing_xi_entries (
+                    match_id,
+                    tournament_edition_id,
+                    tournament_team_id,
+                    player_registration_id,
+                    is_captain,
+                    is_wicketkeeper
+                )
+                VALUES (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )
+                """,
+                matchId,
+                editionId,
+                tournamentTeamId,
+                registrationId,
+                captain,
+                wicketkeeper
         );
     }
 }

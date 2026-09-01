@@ -44,4 +44,16 @@ public class MatchScorer {
         this.assignedBy = assignedBy;
         this.assignedAt = Instant.now();
     }
+
+    public CricketMatch getMatch() {
+        return match;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public boolean isPrimaryScorer() {
+        return primaryScorer;
+    }
 }

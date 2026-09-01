@@ -996,6 +996,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/matches/{matchId}/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get match setup details */
+        get: operations["setupDetails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1227,6 +1244,10 @@ export interface components {
             venue?: components["schemas"]["VenueInfo"];
             /** Format: date-time */
             scheduledAt?: string;
+            scorerAssigned?: boolean;
+            teamAPlayingXiSubmitted?: boolean;
+            teamBPlayingXiSubmitted?: boolean;
+            tossCompleted?: boolean;
         };
         MatchTeamInfo: {
             /** Format: int64 */
@@ -1875,6 +1896,25 @@ export interface components {
             /** Format: int64 */
             matchId?: number;
             innings?: components["schemas"]["InningsScorecard"][];
+        };
+        MatchSetupDetailsResponse: {
+            scorers?: components["schemas"]["ScorerAssignment"][];
+            teamAPlayingXi?: components["schemas"]["TeamPlayingXi"];
+            teamBPlayingXi?: components["schemas"]["TeamPlayingXi"];
+        };
+        ScorerAssignment: {
+            /** Format: int64 */
+            userId?: number;
+            displayName?: string;
+            email?: string;
+            primary?: boolean;
+        };
+        TeamPlayingXi: {
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            registrationIds?: number[];
+            /** Format: int64 */
+            wicketkeeperRegistrationId?: number | null;
         };
     };
     responses: never;
@@ -3498,6 +3538,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LiveMatchResponse"];
+                };
+            };
+        };
+    };
+    setupDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchSetupDetailsResponse"];
                 };
             };
         };

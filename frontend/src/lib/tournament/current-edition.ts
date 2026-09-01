@@ -16,6 +16,10 @@ export type CurrentEditionData =
       edition: TournamentEditionWithId;
     }
   | {
+      status: "not_configured";
+      message: string;
+    }
+  | {
       status: "unavailable";
       message: string;
     };
@@ -30,7 +34,7 @@ export async function getCurrentEditionData(): Promise<CurrentEditionData> {
   const tournament = selectTournament(tournaments.data);
 
   if (!tournament?.id) {
-    return unavailable();
+    return notConfigured("No tournament has been created yet.");
   }
 
   const editions = await getTournamentEditions(tournament.id);
@@ -42,7 +46,7 @@ export async function getCurrentEditionData(): Promise<CurrentEditionData> {
   const edition = selectCurrentEdition(editions.data);
 
   if (!hasEditionId(edition)) {
-    return unavailable();
+    return notConfigured("No tournament edition has been created yet.");
   }
 
   return {
@@ -70,6 +74,13 @@ function selectTournament(
       tournament.name?.toLowerCase().includes("eid cricket fest")
     ) ?? selectableTournaments[0]
   );
+}
+
+function notConfigured(message: string): CurrentEditionData {
+  return {
+    status: "not_configured",
+    message,
+  };
 }
 
 function unavailable(): CurrentEditionData {

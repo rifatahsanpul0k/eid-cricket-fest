@@ -12,6 +12,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Players")
 @RestController
 @RequestMapping("/api/v1/players")
@@ -87,6 +89,12 @@ public class PlayerController {
                 sortBy,
                 direction
         );
+    }
+
+    @Operation(summary = "List active player categories")
+    @GetMapping("/categories")
+    public List<PlayerCategoryResponse> getCategories() {
+        return playerService.getActiveCategories();
     }
 
     @Operation(summary = "Get public player profile")

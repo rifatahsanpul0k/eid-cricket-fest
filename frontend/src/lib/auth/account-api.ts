@@ -5,6 +5,20 @@ import type {
 } from "@/lib/api/schema-helpers";
 import { backendRequest } from "@/lib/auth/backend";
 
+export type PlayerCategory = {
+  code?: string;
+  id?: number;
+  name?: string;
+};
+
+export async function getPlayerCategories() {
+  const result = await backendRequest<PlayerCategory[]>(
+    "/api/v1/players/categories"
+  );
+
+  return result.ok ? result.data : [];
+}
+
 export async function getMyProfile() {
   const result = await backendRequest<PlayerResponse>(
     "/api/v1/players/me",

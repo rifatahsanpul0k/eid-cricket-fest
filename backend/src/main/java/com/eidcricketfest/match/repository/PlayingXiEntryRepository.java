@@ -4,6 +4,7 @@ import com.eidcricketfest.match.entity.PlayingXiEntry;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,19 @@ public interface PlayingXiEntryRepository
     void deleteByMatch_IdAndTournamentTeam_Id(
             Long matchId,
             Long tournamentTeamId
+    );
+
+    @Query("""
+        SELECT xi.match.id,
+               xi.tournamentTeam.id,
+               COUNT(xi)
+        FROM PlayingXiEntry xi
+        WHERE xi.match.id IN :matchIds
+        GROUP BY xi.match.id,
+                 xi.tournamentTeam.id
+    """)
+    List<Object[]> countSubmittedByMatchAndTeam(
+            @Param("matchIds") Collection<Long> matchIds
     );
 
     @Query("""

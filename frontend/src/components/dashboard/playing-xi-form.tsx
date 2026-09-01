@@ -9,6 +9,8 @@ import { selectedCountLabel } from "@/lib/dashboard/match-admin-state";
 export function PlayingXiForm({
   action,
   candidates,
+  initialRegistrationIds = [],
+  initialWicketkeeperRegistrationId,
   playingXiSize,
   returnTo,
   teamName,
@@ -16,12 +18,14 @@ export function PlayingXiForm({
 }: {
   action: string;
   candidates: RosterCandidate[];
+  initialRegistrationIds?: number[];
+  initialWicketkeeperRegistrationId?: number;
   playingXiSize: number;
   returnTo: string;
   teamName: string;
   tournamentTeamId: number;
 }) {
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number[]>(initialRegistrationIds);
   const selectedSet = new Set(selected);
   const isFull = selected.length >= playingXiSize;
 
@@ -73,6 +77,7 @@ export function PlayingXiForm({
         Wicketkeeper
         <select
           className="min-h-11 rounded-sm border border-white/10 bg-background px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          defaultValue={initialWicketkeeperRegistrationId ?? ""}
           name="wicketkeeperRegistrationId"
         >
           <option value="">Not specified</option>

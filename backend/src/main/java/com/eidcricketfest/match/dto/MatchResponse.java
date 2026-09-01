@@ -22,7 +22,12 @@ public record MatchResponse(
 
         VenueInfo venue,
 
-        Instant scheduledAt
+        Instant scheduledAt,
+
+        boolean scorerAssigned,
+        boolean teamAPlayingXiSubmitted,
+        boolean teamBPlayingXiSubmitted,
+        boolean tossCompleted
 ) {
 
     @Schema(name = "MatchTeamInfo")

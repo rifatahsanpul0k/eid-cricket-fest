@@ -5,7 +5,10 @@ import { ShieldAlertIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { getSession } from "@/lib/auth/session";
 import { searchOrganizerPayments, searchOrganizerRegistrations } from "@/lib/dashboard/api";
-import { hasOrganizerAccess } from "@/lib/dashboard/roles";
+import {
+  getDashboardRoleLabel,
+  hasOrganizerAccess,
+} from "@/lib/dashboard/roles";
 import { getCurrentEditionData } from "@/lib/tournament/current-edition";
 import { cn } from "@/lib/utils";
 
@@ -44,46 +47,77 @@ export default async function DashboardPage() {
   return (
     <main className="flex-1">
       <DashboardHeader
+        roleLabel={getDashboardRoleLabel(session)}
         description={
           currentEdition.status === "ready"
-            ? `${currentEdition.edition.name} operations`
-            : currentEdition.message
+            ? `${currentEdition.edition.name} · ${formatStatusLabel(currentEdition.edition.status)}`
+            : `${currentEdition.message} Set up the tournament before beginning tournament operations.`
         }
-        title="Dashboard"
+        title="Tournament Dashboard"
       />
-      <section className="mx-auto grid w-full max-w-5xl gap-4 px-4 py-8 sm:px-6 md:grid-cols-2 lg:px-8">
-        <DashboardCard
-          description="Create permanent teams, add teams to the current edition, and assign captains."
-          href="/dashboard/teams"
-          label="Teams"
-        />
-        <DashboardCard
-          description="Manage draft lifecycle, order, eligible pool, picks, and backend-provided rosters."
-          href="/dashboard/draft"
-          label="Draft"
-        />
-        <DashboardCard
-          description="Generate league fixtures, create venues, and inspect knockout bracket setup."
-          href="/dashboard/fixtures"
-          label="Fixtures"
-        />
-        <DashboardCard
-          description="Schedule matches, assign scorers, submit playing XIs, and record tosses."
-          href="/dashboard/matches"
-          label="Matches"
-        />
-        <DashboardCard
-          count={registrations?.ok ? registrations.data.totalElements : undefined}
-          description="Review player registrations and approve or reject pending requests."
-          href="/dashboard/registrations"
-          label="Registrations"
-        />
-        <DashboardCard
-          count={payments?.ok ? payments.data.totalElements : undefined}
-          description="Review submitted registration payments and verify or reject pending entries."
-          href="/dashboard/payments"
-          label="Payments"
-        />
+      <section className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-8 sm:px-6 lg:px-8">
+        <DashboardSection title="Player Management">
+          <DashboardCard
+            actionLabel="Review registrations"
+            count={registrations?.ok ? registrations.data.totalElements : undefined}
+            description="Review players who applied for the current tournament and approve or reject their registration."
+            eyebrow="Player review"
+            href="/dashboard/registrations"
+            label="Registrations"
+          />
+          <DashboardCard
+            actionLabel="Review payments"
+            count={payments?.ok ? payments.data.totalElements : undefined}
+            description="Check player registration payments and verify or reject submitted payments."
+            eyebrow="Finance"
+            href="/dashboard/payments"
+            label="Payments"
+          />
+        </DashboardSection>
+
+        <DashboardSection title="Team Management">
+          <DashboardCard
+            actionLabel="Manage teams"
+            description="Create tournament teams, add them to the current edition, assign captains, and view team setup."
+            eyebrow="Team management"
+            href="/dashboard/teams"
+            label="Teams"
+          />
+          <DashboardCard
+            actionLabel="Open draft"
+            description="Run the player draft and assign approved players to tournament teams."
+            eyebrow="Player selection"
+            href="/dashboard/draft"
+            label="Draft"
+          />
+        </DashboardSection>
+
+        <DashboardSection title="Match Management">
+          <DashboardCard
+            actionLabel="Manage fixtures"
+            description="Create venues and generate the tournament match schedule."
+            eyebrow="Match setup"
+            href="/dashboard/fixtures"
+            label="Fixtures"
+          />
+          <DashboardCard
+            actionLabel="Manage matches"
+            description="Prepare matches by scheduling them, assigning scorers, selecting playing XIs, and recording the toss."
+            eyebrow="Match operations"
+            href="/dashboard/matches"
+            label="Matches"
+          />
+        </DashboardSection>
+
+        <DashboardSection title="Match Day">
+          <DashboardCard
+            actionLabel="Open scorer console"
+            description="Open the scoring area for live tournament matches."
+            eyebrow="Live scoring"
+            href="/scorer"
+            label="Scorer Console"
+          />
+        </DashboardSection>
       </section>
     </main>
   );
@@ -91,15 +125,17 @@ export default async function DashboardPage() {
 
 function DashboardHeader({
   description,
+  roleLabel,
   title,
 }: {
   description: string;
+  roleLabel: string;
   title: string;
 }) {
   return (
     <section className="border-b border-white/10 bg-background">
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <p className="font-mono text-xs uppercase text-primary">Organizer</p>
+        <p className="font-mono text-xs uppercase text-primary">{roleLabel}</p>
         <h1 className="mt-3 font-heading text-4xl font-bold uppercase tracking-normal">
           {title}
         </h1>
@@ -109,30 +145,59 @@ function DashboardHeader({
   );
 }
 
+function DashboardSection({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string;
+}) {
+  return (
+    <section>
+      <h2 className="font-mono text-xs uppercase text-primary">{title}</h2>
+      <div className="mt-3 grid gap-4 md:grid-cols-2">{children}</div>
+    </section>
+  );
+}
+
 function DashboardCard({
+  actionLabel,
   count,
   description,
+  eyebrow,
   href,
   label,
 }: {
+  actionLabel: string;
   count?: number;
   description: string;
+  eyebrow: string;
   href: string;
   label: string;
 }) {
   return (
     <article className="rounded-sm border border-white/10 bg-card p-5">
       <p className="font-mono text-xs uppercase text-muted-foreground">
-        {count === undefined ? "Review" : `${count} total`}
+        {count === undefined ? eyebrow : `${eyebrow} · ${count} total`}
       </p>
       <h2 className="mt-3 font-heading text-2xl font-bold uppercase tracking-normal">
         {label}
       </h2>
       <p className="mt-3 text-sm text-muted-foreground">{description}</p>
       <Link className={cn(buttonVariants(), "mt-5")} href={href}>
-        Open
+        {actionLabel}
       </Link>
     </article>
+  );
+}
+
+function formatStatusLabel(status?: string) {
+  return (
+    status
+      ?.toLowerCase()
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ") ?? "Status unavailable"
   );
 }
 

@@ -88,6 +88,54 @@ public class MatchSetupService {
         refreshReadyState(match);
     }
 
+    @Transactional(readOnly = true)
+    public MatchSetupDetailsResponse setupDetails(
+            Long matchId
+    ) {
+
+        CricketMatch match = findMatch(matchId);
+
+        List<MatchSetupDetailsResponse.ScorerAssignment> scorers =
+                scorerRepository
+                        .findDetailedByMatchId(matchId)
+                        .stream()
+                        .map(scorer ->
+                                new MatchSetupDetailsResponse.ScorerAssignment(
+                                        scorer.getUser().getId(),
+                                        scorer.getUser().getDisplayName(),
+                                        scorer.getUser().getEmail(),
+                                        scorer.isPrimaryScorer()
+                                )
+                        )
+                        .toList();
+
+        Map<Long, List<PlayingXiEntry>> playingXiByTeam =
+                new LinkedHashMap<>();
+
+        for (PlayingXiEntry entry :
+                playingXiRepository.findDetailedByMatchId(matchId)) {
+
+            playingXiByTeam
+                    .computeIfAbsent(
+                            entry.getTournamentTeam().getId(),
+                            ignored -> new ArrayList<>()
+                    )
+                    .add(entry);
+        }
+
+        return new MatchSetupDetailsResponse(
+                scorers,
+                teamPlayingXi(
+                        match.getTeamA().getId(),
+                        playingXiByTeam
+                ),
+                teamPlayingXi(
+                        match.getTeamB().getId(),
+                        playingXiByTeam
+                )
+        );
+    }
+
     public void submitPlayingXi(
             Long matchId,
             Long tournamentTeamId,
@@ -354,5 +402,39 @@ public class MatchSetupService {
                                 "User not found"
                         )
                 );
+    }
+
+    private MatchSetupDetailsResponse.TeamPlayingXi teamPlayingXi(
+            Long tournamentTeamId,
+            Map<Long, List<PlayingXiEntry>> playingXiByTeam
+    ) {
+
+        List<PlayingXiEntry> entries =
+                playingXiByTeam.getOrDefault(
+                        tournamentTeamId,
+                        List.of()
+                );
+
+        List<Long> registrationIds =
+                entries.stream()
+                        .map(entry ->
+                                entry.getRegistration().getId()
+                        )
+                        .toList();
+
+        Long wicketkeeperRegistrationId =
+                entries.stream()
+                        .filter(PlayingXiEntry::isWicketkeeper)
+                        .map(entry ->
+                                entry.getRegistration().getId()
+                        )
+                        .findFirst()
+                        .orElse(null);
+
+        return new MatchSetupDetailsResponse.TeamPlayingXi(
+                tournamentTeamId,
+                registrationIds,
+                wicketkeeperRegistrationId
+        );
     }
 }

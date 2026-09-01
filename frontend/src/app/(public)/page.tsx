@@ -14,7 +14,7 @@ export default async function HomePage() {
 
   const data = await getHomePageData();
 
-  if (data.status === "unavailable") {
+  if (data.status !== "ready") {
     return (
       <main>
         <FallbackHero />

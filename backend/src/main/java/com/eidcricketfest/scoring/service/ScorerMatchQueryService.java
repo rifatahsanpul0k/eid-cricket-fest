@@ -254,8 +254,36 @@ public class ScorerMatchQueryService {
                 ),
                 match.getOversPerInnings(),
                 venue,
-                match.getScheduledAt()
+                match.getScheduledAt(),
+                scorerRepository.existsByMatch_Id(match.getId()),
+                playingXiSubmitted(
+                        match,
+                        match.getTeamA().getId()
+                ),
+                playingXiSubmitted(
+                        match,
+                        match.getTeamB().getId()
+                ),
+                tossRepository.existsByMatch_Id(match.getId())
         );
+    }
+
+    private boolean playingXiSubmitted(
+            CricketMatch match,
+            Long tournamentTeamId
+    ) {
+
+        Integer required =
+                match.getTournamentEdition()
+                        .getPlayingXiSize();
+
+        return required != null
+                && required > 0
+                && playingXiRepository
+                .countByMatch_IdAndTournamentTeam_Id(
+                        match.getId(),
+                        tournamentTeamId
+                ) == required;
     }
 
     private record NextInnings(

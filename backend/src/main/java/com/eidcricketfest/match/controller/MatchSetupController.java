@@ -26,6 +26,14 @@ public class MatchSetupController {
         this.matchSetupService = matchSetupService;
     }
 
+    @Operation(summary = "Get match setup details")
+    @GetMapping("/{matchId}/setup")
+    public MatchSetupDetailsResponse setupDetails(
+            @PathVariable Long matchId
+    ) {
+        return matchSetupService.setupDetails(matchId);
+    }
+
     @Operation(summary = "Assign match scorer")
     @PostMapping("/{matchId}/scorers")
     public void assignScorer(

@@ -20,7 +20,7 @@ export default async function HistoryPage() {
 
   const currentEdition = await getCurrentEditionData();
 
-  if (currentEdition.status === "unavailable") {
+  if (currentEdition.status !== "ready") {
     return (
       <main>
         <PublicPageHeader

@@ -36,7 +36,7 @@ export default async function FixturesPage({
   const stage = parseMatchStage(params.stage);
   const currentEdition = await getCurrentEditionData();
 
-  if (currentEdition.status === "unavailable") {
+  if (currentEdition.status !== "ready") {
     return (
       <main>
         <FixturesHero />

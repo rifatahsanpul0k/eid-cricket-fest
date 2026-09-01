@@ -29,7 +29,7 @@ export default async function StandingsPage() {
 
   const currentEdition = await getCurrentEditionData();
 
-  if (currentEdition.status === "unavailable") {
+  if (currentEdition.status !== "ready") {
     return (
       <main>
         <PublicPageHeader

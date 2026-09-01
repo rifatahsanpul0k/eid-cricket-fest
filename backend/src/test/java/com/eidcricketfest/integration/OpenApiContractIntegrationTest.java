@@ -60,6 +60,9 @@ class OpenApiContractIntegrationTest
         assertThat(paths.has("/api/v1/players"))
                 .isTrue();
 
+        assertThat(paths.has("/api/v1/players/categories"))
+                .isTrue();
+
         assertThat(paths.has(
                 "/api/v1/tournament-editions/{editionId}/matches"
         )).isTrue();

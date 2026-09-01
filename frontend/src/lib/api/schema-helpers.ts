@@ -23,6 +23,8 @@ export type DraftPoolPlayerResponse =
 export type CreateDraftRequest = components["schemas"]["CreateDraftRequest"];
 export type DraftPickRequest = components["schemas"]["DraftPickRequest"];
 export type MatchResponse = components["schemas"]["MatchResponse"];
+export type MatchSetupDetailsResponse =
+  components["schemas"]["MatchSetupDetailsResponse"];
 export type PageResponseMatchResponse =
   components["schemas"]["PageResponseMatchResponse"];
 export type Venue = components["schemas"]["Venue"];

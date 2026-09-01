@@ -2,27 +2,21 @@ import type { Metadata } from "next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getMyProfile } from "@/lib/auth/account-api";
+import { getMyProfile, getPlayerCategories } from "@/lib/auth/account-api";
 
 export const metadata: Metadata = {
   title: "Profile",
 };
-
-const categories = [
-  { id: 1, label: "Batsman" },
-  { id: 2, label: "Bowler" },
-  { id: 3, label: "All-rounder" },
-  { id: 4, label: "Wicketkeeper" },
-];
 
 export default async function ProfilePage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [params, profileResult] = await Promise.all([
+  const [params, profileResult, categories] = await Promise.all([
     searchParams,
     getMyProfile(),
+    getPlayerCategories(),
   ]);
   const profile =
     profileResult && "ok" in profileResult && profileResult.ok
@@ -81,15 +75,21 @@ export default async function ProfilePage({
               Primary category
               <select
                 className="h-10 rounded-sm border border-white/10 bg-background px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                disabled={categories.length === 0}
                 name="primaryCategoryId"
               >
                 <option value="">Select category</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
-                    {category.label}
+                    {category.name}
                   </option>
                 ))}
               </select>
+              {categories.length === 0 ? (
+                <span className="text-xs text-muted-foreground">
+                  No active player categories are available.
+                </span>
+              ) : null}
             </label>
             <label className="grid gap-2">
               Date of birth
