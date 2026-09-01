@@ -3,7 +3,16 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import type {
+  MyEditionStatisticsResponse,
+  MyMatchResponse,
+  MyTeamResponse,
+  PaymentResponse,
+} from "@/lib/api/schema-helpers";
+import type { BackendResult } from "@/lib/auth/backend";
 import { getMyProfile, getMyRegistration, getMyPayments } from "@/lib/auth/account-api";
+import { getMyMatches, getMyStatistics, getMyTeam } from "@/lib/auth/my-cricket-api";
+import { myMatchAction, partitionMyMatches } from "@/lib/auth/my-cricket-state";
 import {
   paymentStatusMessage,
   registrationStatusMessage,
@@ -33,7 +42,28 @@ export default async function AccountPage() {
     registrationResult && "ok" in registrationResult && registrationResult.ok
       ? registrationResult.data
       : undefined;
-  const payments = registration?.id ? await getMyPayments(registration.id) : [];
+  let payments: PaymentResponse[] = [];
+  let teamResult: BackendResult<MyTeamResponse> | undefined;
+  let matches: MyMatchResponse[] = [];
+  let statisticsResult: BackendResult<MyEditionStatisticsResponse> | undefined;
+
+  if (currentEdition.status === "ready") {
+    [payments, teamResult, matches, statisticsResult] = await Promise.all([
+      registration?.id ? getMyPayments(registration.id) : [],
+      getMyTeam(currentEdition.edition.id),
+      getMyMatches(currentEdition.edition.id),
+      getMyStatistics(currentEdition.edition.id),
+    ]);
+  }
+  const team = teamResult && "ok" in teamResult && teamResult.ok
+    ? teamResult.data
+    : undefined;
+  const statistics =
+    statisticsResult && "ok" in statisticsResult && statisticsResult.ok
+      ? statisticsResult.data
+      : undefined;
+  const nextMatch = partitionMyMatches(matches).upcoming[0];
+  const nextMatchAction = nextMatch ? myMatchAction(nextMatch) : undefined;
 
   return (
     <main className="flex-1">
@@ -88,6 +118,74 @@ export default async function AccountPage() {
             {paymentStatusMessage(payments)}
           </p>
         </AccountPanel>
+        <AccountPanel
+          actionHref="/account/team"
+          actionLabel="View team"
+          title="My team"
+        >
+          {team ? (
+            <>
+              <p className="font-medium text-foreground">{team.teamName}</p>
+              <p className="mt-1 text-muted-foreground">
+                {team.me?.captain ? "Captain" : "Squad member"}
+                {team.me?.jerseyNumber ? ` · #${team.me.jerseyNumber}` : ""}
+              </p>
+              <p className="mt-3 text-muted-foreground">
+                {team.squad?.length ?? 0} active squad members
+              </p>
+            </>
+          ) : (
+            <p className="text-muted-foreground">
+              Your approved registration has not been assigned to a team yet.
+            </p>
+          )}
+        </AccountPanel>
+        <AccountPanel
+          actionHref="/account/matches"
+          actionLabel="View matches"
+          title="My matches"
+        >
+          {nextMatch ? (
+            <>
+              <p className="font-medium text-foreground">
+                Match {nextMatch.matchNumber ?? "-"} ·{" "}
+                {nextMatch.opponent?.name ?? "Opponent TBD"}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {nextMatch.status ?? "Scheduled"}
+              </p>
+              {nextMatchAction ? (
+                <Link
+                  className="mt-3 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                  href={nextMatchAction.href}
+                >
+                  {nextMatchAction.label}
+                </Link>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-muted-foreground">
+              Your team fixtures will appear here after scheduling.
+            </p>
+          )}
+        </AccountPanel>
+        <AccountPanel
+          actionHref="/account/statistics"
+          actionLabel="View statistics"
+          title="My statistics"
+        >
+          {statistics ? (
+            <dl className="grid grid-cols-3 gap-3">
+              <MiniStat label="Matches" value={statistics.matchesPlayed} />
+              <MiniStat label="Runs" value={statistics.batting?.runs} />
+              <MiniStat label="Wickets" value={statistics.bowling?.wickets} />
+            </dl>
+          ) : (
+            <p className="text-muted-foreground">
+              Edition statistics will appear once match data is available.
+            </p>
+          )}
+        </AccountPanel>
       </section>
     </main>
   );
@@ -113,6 +211,15 @@ function AccountPanel({
       <Link className={cn(buttonVariants(), "mt-5")} href={actionHref}>
         {actionLabel}
       </Link>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value?: number }) {
+  return (
+    <div>
+      <dt className="text-xs uppercase text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-lg font-semibold text-foreground">{value ?? 0}</dd>
     </div>
   );
 }

@@ -63,6 +63,15 @@ class OpenApiContractIntegrationTest
         assertThat(paths.has("/api/v1/players/categories"))
                 .isTrue();
 
+        assertThat(paths.has("/api/v1/players/me/team"))
+                .isTrue();
+
+        assertThat(paths.has("/api/v1/players/me/matches"))
+                .isTrue();
+
+        assertThat(paths.has("/api/v1/players/me/statistics"))
+                .isTrue();
+
         assertThat(paths.has(
                 "/api/v1/tournament-editions/{editionId}/matches"
         )).isTrue();
@@ -93,6 +102,21 @@ class OpenApiContractIntegrationTest
                 paths.path("/api/v1/matches/{matchId}/live")
                         .path("get")
         )).isFalse();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/players/me/team")
+                        .path("get")
+        )).isTrue();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/players/me/matches")
+                        .path("get")
+        )).isTrue();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/players/me/statistics")
+                        .path("get")
+        )).isTrue();
 
         assertThat(hasBearerRequirement(
                 paths.path("/api/v1/innings/{inningsId}/deliveries")

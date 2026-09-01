@@ -59,4 +59,28 @@ public class TeamRosterEntry extends BaseEntity {
     public TournamentTeam getTournamentTeam() {
         return tournamentTeam;
     }
+
+    public TournamentEdition getTournamentEdition() {
+        return tournamentEdition;
+    }
+
+    public PlayerRegistration getPlayerRegistration() {
+        return playerRegistration;
+    }
+
+    public AcquisitionType getAcquisitionType() {
+        return acquisitionType;
+    }
+
+    public String getJerseyNumber() {
+        return jerseyNumber;
+    }
+
+    public RosterEntryStatus getStatus() {
+        return status;
+    }
+
+    public Instant getJoinedAt() {
+        return joinedAt;
+    }
 }

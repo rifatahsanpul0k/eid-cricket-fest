@@ -78,6 +78,22 @@ public interface WicketRepository
         SELECT w
         FROM Wicket w
         JOIN FETCH w.delivery d
+        JOIN FETCH d.innings i
+        JOIN FETCH w.dismissedPlayer dp
+        JOIN FETCH dp.registration dr
+        WHERE i.tournamentEdition.id = :editionId
+          AND dr.player.id = :playerId
+          AND d.voidedAt IS NULL
+    """)
+    List<Wicket> findDismissalsForPlayerInEdition(
+            @Param("editionId") Long editionId,
+            @Param("playerId") Long playerId
+    );
+
+    @Query("""
+        SELECT w
+        FROM Wicket w
+        JOIN FETCH w.delivery d
         JOIN FETCH d.innings
         JOIN FETCH d.bowler b
         JOIN FETCH b.registration br
@@ -86,6 +102,39 @@ public interface WicketRepository
           AND d.voidedAt IS NULL
     """)
     List<Wicket> findBowlerWicketsForPlayer(
+            @Param("playerId") Long playerId
+    );
+
+    @Query("""
+        SELECT w
+        FROM Wicket w
+        JOIN FETCH w.delivery d
+        JOIN FETCH d.innings i
+        JOIN FETCH d.bowler b
+        JOIN FETCH b.registration br
+        WHERE i.tournamentEdition.id = :editionId
+          AND br.player.id = :playerId
+          AND w.creditedToBowler = true
+          AND d.voidedAt IS NULL
+    """)
+    List<Wicket> findBowlerWicketsForPlayerInEdition(
+            @Param("editionId") Long editionId,
+            @Param("playerId") Long playerId
+    );
+
+    @Query("""
+        SELECT w
+        FROM Wicket w
+        JOIN FETCH w.delivery d
+        JOIN FETCH d.innings i
+        JOIN FETCH w.fielder f
+        JOIN FETCH f.registration fr
+        WHERE i.tournamentEdition.id = :editionId
+          AND fr.player.id = :playerId
+          AND d.voidedAt IS NULL
+    """)
+    List<Wicket> findFieldingDismissalsForPlayerInEdition(
+            @Param("editionId") Long editionId,
             @Param("playerId") Long playerId
     );
 }

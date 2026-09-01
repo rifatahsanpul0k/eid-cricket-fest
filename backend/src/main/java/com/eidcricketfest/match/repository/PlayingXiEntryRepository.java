@@ -70,6 +70,28 @@ public interface PlayingXiEntryRepository
     );
 
     @Query("""
+        SELECT DISTINCT xi.match.id
+        FROM PlayingXiEntry xi
+        WHERE xi.edition.id = :editionId
+          AND xi.registration.player.id = :playerId
+    """)
+    List<Long> findMatchIdsByEditionIdAndPlayerId(
+            @Param("editionId") Long editionId,
+            @Param("playerId") Long playerId
+    );
+
+    @Query("""
+        SELECT COUNT(DISTINCT xi.match.id)
+        FROM PlayingXiEntry xi
+        WHERE xi.edition.id = :editionId
+          AND xi.registration.player.id = :playerId
+    """)
+    long countMatchesPlayedInEdition(
+            @Param("editionId") Long editionId,
+            @Param("playerId") Long playerId
+    );
+
+    @Query("""
         SELECT COUNT(DISTINCT xi.edition.id)
         FROM PlayingXiEntry xi
         WHERE xi.registration.player.id = :playerId

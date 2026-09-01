@@ -85,6 +85,11 @@ public class SecurityConfig {
                                 "/api/v1/players/me"
                         ).authenticated()
 
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/players/me/**"
+                        ).hasRole("PLAYER")
+
                         // Only PLAYER can create own player profile
                         .requestMatchers(
                                 HttpMethod.POST,

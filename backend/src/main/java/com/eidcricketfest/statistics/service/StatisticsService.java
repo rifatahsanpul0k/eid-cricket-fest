@@ -3,6 +3,7 @@ package com.eidcricketfest.statistics.service;
 import com.eidcricketfest.common.exception.ResourceNotFoundException;
 import com.eidcricketfest.match.entity.PlayingXiEntry;
 import com.eidcricketfest.match.repository.PlayingXiEntryRepository;
+import com.eidcricketfest.player.dto.MyEditionStatisticsResponse;
 import com.eidcricketfest.player.entity.Player;
 import com.eidcricketfest.player.repository.PlayerRepository;
 import com.eidcricketfest.scoring.entity.*;
@@ -135,6 +136,107 @@ public class StatisticsService {
                         bowlingDeliveries,
                         bowlingWickets
                 )
+        );
+    }
+
+    public MyEditionStatisticsResponse playerEditionStatistics(
+            Long editionId,
+            Long playerId
+    ) {
+
+        if (!editionRepository.existsById(editionId)) {
+            throw new ResourceNotFoundException(
+                    "Tournament edition not found"
+            );
+        }
+
+        Player player =
+                playerRepository.findById(playerId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Player not found"
+                                )
+                        );
+
+        List<Delivery> battingDeliveries =
+                deliveryRepository
+                        .findActiveBattingDeliveriesByEditionIdAndPlayerId(
+                                editionId,
+                                playerId
+                        );
+
+        List<Delivery> bowlingDeliveries =
+                deliveryRepository
+                        .findActiveBowlingDeliveriesByEditionIdAndPlayerId(
+                                editionId,
+                                playerId
+                        );
+
+        List<Wicket> dismissals =
+                wicketRepository
+                        .findDismissalsForPlayerInEdition(
+                                editionId,
+                                playerId
+                        );
+
+        List<Wicket> bowlingWickets =
+                wicketRepository
+                        .findBowlerWicketsForPlayerInEdition(
+                                editionId,
+                                playerId
+                        );
+
+        List<Wicket> fieldingWickets =
+                wicketRepository
+                        .findFieldingDismissalsForPlayerInEdition(
+                                editionId,
+                                playerId
+                        );
+
+        PlayerCareerResponse.BattingCareer batting =
+                buildCareerBatting(
+                        battingDeliveries,
+                        dismissals.size()
+                );
+
+        PlayerCareerResponse.BowlingCareer bowling =
+                buildCareerBowling(
+                        bowlingDeliveries,
+                        bowlingWickets
+                );
+
+        return new MyEditionStatisticsResponse(
+                editionId,
+                playerId,
+                player.getFullName(),
+                Math.toIntExact(
+                        playingXiRepository
+                                .countMatchesPlayedInEdition(
+                                        editionId,
+                                        playerId
+                                )
+                ),
+                new MyEditionStatisticsResponse.Batting(
+                        batting.innings(),
+                        batting.runs(),
+                        batting.balls(),
+                        batting.highestScore(),
+                        batting.fours(),
+                        batting.sixes(),
+                        batting.dismissals(),
+                        batting.average(),
+                        batting.strikeRate()
+                ),
+                new MyEditionStatisticsResponse.Bowling(
+                        bowling.overs(),
+                        bowling.legalBalls(),
+                        bowling.runsConceded(),
+                        bowling.wickets(),
+                        bowling.bestBowling(),
+                        bowling.average(),
+                        bowling.economy()
+                ),
+                buildFielding(fieldingWickets)
         );
     }
 
@@ -714,6 +816,31 @@ public class StatisticsService {
 
                 average,
                 economy
+        );
+    }
+
+    private MyEditionStatisticsResponse.Fielding buildFielding(
+            List<Wicket> wickets
+    ) {
+
+        int catches = 0;
+        int stumpings = 0;
+        int runOuts = 0;
+
+        for (Wicket wicket : wickets) {
+            switch (wicket.getDismissalType()) {
+                case CAUGHT -> catches++;
+                case STUMPED -> stumpings++;
+                case RUN_OUT -> runOuts++;
+                default -> {
+                }
+            }
+        }
+
+        return new MyEditionStatisticsResponse.Fielding(
+                catches,
+                stumpings,
+                runOuts
         );
     }
 

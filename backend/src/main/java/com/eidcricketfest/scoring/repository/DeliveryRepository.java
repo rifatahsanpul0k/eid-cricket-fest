@@ -109,6 +109,23 @@ public interface DeliveryRepository
         SELECT d
         FROM Delivery d
         JOIN FETCH d.innings i
+        JOIN FETCH d.striker s
+        JOIN FETCH s.registration sr
+        JOIN FETCH sr.player
+        WHERE i.tournamentEdition.id = :editionId
+          AND sr.player.id = :playerId
+          AND d.voidedAt IS NULL
+        ORDER BY i.id, d.sequenceNo
+    """)
+    List<Delivery> findActiveBattingDeliveriesByEditionIdAndPlayerId(
+            @Param("editionId") Long editionId,
+            @Param("playerId") Long playerId
+    );
+
+    @Query("""
+        SELECT d
+        FROM Delivery d
+        JOIN FETCH d.innings i
         JOIN FETCH d.bowler b
         JOIN FETCH b.registration br
         JOIN FETCH br.player
@@ -117,6 +134,23 @@ public interface DeliveryRepository
         ORDER BY i.id, d.sequenceNo
     """)
     List<Delivery> findActiveBowlingDeliveriesByPlayerId(
+            @Param("playerId") Long playerId
+    );
+
+    @Query("""
+        SELECT d
+        FROM Delivery d
+        JOIN FETCH d.innings i
+        JOIN FETCH d.bowler b
+        JOIN FETCH b.registration br
+        JOIN FETCH br.player
+        WHERE i.tournamentEdition.id = :editionId
+          AND br.player.id = :playerId
+          AND d.voidedAt IS NULL
+        ORDER BY i.id, d.sequenceNo
+    """)
+    List<Delivery> findActiveBowlingDeliveriesByEditionIdAndPlayerId(
+            @Param("editionId") Long editionId,
             @Param("playerId") Long playerId
     );
 }

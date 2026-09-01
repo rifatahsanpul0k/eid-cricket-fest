@@ -1002,6 +1002,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/players/me/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my tournament team */
+        get: operations["getMyTeam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/players/me/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my tournament statistics */
+        get: operations["getMyStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/players/me/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get my tournament matches */
+        get: operations["getMyMatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/players/categories": {
         parameters: {
             query?: never;
@@ -1944,6 +1995,130 @@ export interface components {
             matchesPlayed?: number;
             batting?: components["schemas"]["BattingCareer"];
             bowling?: components["schemas"]["BowlingCareer"];
+        };
+        Captain: {
+            /** Format: int64 */
+            registrationId?: number;
+            /** Format: int64 */
+            playerId?: number;
+            playerName?: string;
+        };
+        Me: {
+            /** Format: int64 */
+            registrationId?: number;
+            /** Format: int64 */
+            playerId?: number;
+            playerName?: string;
+            /** @enum {string} */
+            acquisitionType?: "CAPTAIN" | "DRAFT" | "MANUAL";
+            jerseyNumber?: string;
+            captain?: boolean;
+        };
+        MyTeamResponse: {
+            /** Format: int64 */
+            editionId?: number;
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            /** Format: int64 */
+            teamId?: number;
+            teamName?: string;
+            teamShortName?: string;
+            teamLogoUrl?: string;
+            captain?: components["schemas"]["Captain"];
+            me?: components["schemas"]["Me"];
+            squad?: components["schemas"]["SquadMember"][];
+        };
+        SquadMember: {
+            /** Format: int64 */
+            registrationId?: number;
+            /** Format: int64 */
+            playerId?: number;
+            playerName?: string;
+            photoUrl?: string;
+            category?: string;
+            /** @enum {string} */
+            acquisitionType?: "CAPTAIN" | "DRAFT" | "MANUAL";
+            jerseyNumber?: string;
+            captain?: boolean;
+        };
+        Batting: {
+            /** Format: int32 */
+            innings?: number;
+            /** Format: int32 */
+            runs?: number;
+            /** Format: int32 */
+            balls?: number;
+            /** Format: int32 */
+            highestScore?: number;
+            /** Format: int32 */
+            fours?: number;
+            /** Format: int32 */
+            sixes?: number;
+            /** Format: int32 */
+            dismissals?: number;
+            average?: number;
+            strikeRate?: number;
+        };
+        Bowling: {
+            overs?: string;
+            /** Format: int32 */
+            legalBalls?: number;
+            /** Format: int32 */
+            runsConceded?: number;
+            /** Format: int32 */
+            wickets?: number;
+            bestBowling?: string;
+            average?: number;
+            economy?: number;
+        };
+        Fielding: {
+            /** Format: int32 */
+            catches?: number;
+            /** Format: int32 */
+            stumpings?: number;
+            /** Format: int32 */
+            runOuts?: number;
+        };
+        MyEditionStatisticsResponse: {
+            /** Format: int64 */
+            editionId?: number;
+            /** Format: int64 */
+            playerId?: number;
+            playerName?: string;
+            /** Format: int32 */
+            matchesPlayed?: number;
+            batting?: components["schemas"]["Batting"];
+            bowling?: components["schemas"]["Bowling"];
+            fielding?: components["schemas"]["Fielding"];
+        };
+        MyMatchResponse: {
+            /** Format: int64 */
+            matchId?: number;
+            /** Format: int32 */
+            matchNumber?: number;
+            /** Format: int32 */
+            roundNumber?: number;
+            /** @enum {string} */
+            stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
+            /** @enum {string} */
+            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: int32 */
+            oversPerInnings?: number;
+            venue?: components["schemas"]["Venue"];
+            teamA?: components["schemas"]["Team"];
+            teamB?: components["schemas"]["Team"];
+            /** Format: int64 */
+            myTournamentTeamId?: number;
+            opponent?: components["schemas"]["Team"];
+            inPlayingXi?: boolean;
+            myTeamPlayingXiSubmitted?: boolean;
+            /** Format: int64 */
+            winnerTeamId?: number;
+            /** @enum {string} */
+            resultType?: "RUNS" | "WICKETS" | "TIE" | "NO_RESULT" | "TIEBREAKER" | "FORFEIT";
+            resultSummary?: string;
         };
         PlayerCategoryResponse: {
             /** Format: int32 */
@@ -3645,6 +3820,72 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PlayerResponse"];
+                };
+            };
+        };
+    };
+    getMyTeam: {
+        parameters: {
+            query: {
+                editionId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyTeamResponse"];
+                };
+            };
+        };
+    };
+    getMyStatistics: {
+        parameters: {
+            query: {
+                editionId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyEditionStatisticsResponse"];
+                };
+            };
+        };
+    };
+    getMyMatches: {
+        parameters: {
+            query: {
+                editionId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyMatchResponse"][];
                 };
             };
         };

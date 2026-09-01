@@ -5,6 +5,10 @@ export type LoginRequest = components["schemas"]["LoginRequest"];
 export type RegisterRequest = components["schemas"]["RegisterRequest"];
 export type PlayerResponse = components["schemas"]["PlayerResponse"];
 export type CreatePlayerRequest = components["schemas"]["CreatePlayerRequest"];
+export type MyTeamResponse = components["schemas"]["MyTeamResponse"];
+export type MyMatchResponse = components["schemas"]["MyMatchResponse"];
+export type MyEditionStatisticsResponse =
+  components["schemas"]["MyEditionStatisticsResponse"];
 export type RegistrationResponse = components["schemas"]["RegistrationResponse"];
 export type CreateRegistrationRequest =
   components["schemas"]["CreateRegistrationRequest"];

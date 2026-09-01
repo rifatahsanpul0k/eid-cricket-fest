@@ -125,6 +125,29 @@ public interface CricketMatchRepository
     @Query("""
         SELECT m
         FROM CricketMatch m
+        JOIN FETCH m.tournamentEdition
+        JOIN FETCH m.teamA a
+        JOIN FETCH a.team
+        JOIN FETCH m.teamB b
+        JOIN FETCH b.team
+        LEFT JOIN FETCH m.venue
+        LEFT JOIN FETCH m.winnerTeam w
+        LEFT JOIN FETCH w.team
+        WHERE m.tournamentEdition.id = :editionId
+          AND (
+            m.teamA.id = :tournamentTeamId
+            OR m.teamB.id = :tournamentTeamId
+          )
+        ORDER BY m.scheduledAt NULLS LAST, m.matchNumber
+    """)
+    List<CricketMatch> findDetailedByEditionAndTeamId(
+            @Param("editionId") Long editionId,
+            @Param("tournamentTeamId") Long tournamentTeamId
+    );
+
+    @Query("""
+        SELECT m
+        FROM CricketMatch m
         JOIN FETCH m.teamA a
         JOIN FETCH a.team
         JOIN FETCH m.teamB b
