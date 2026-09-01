@@ -216,6 +216,79 @@ public class TournamentEdition extends BaseEntity {
         return lossPoints;
     }
 
+    public void updateConfiguration(
+            String name,
+            LocalDate startDate,
+            LocalDate endDate,
+            Instant registrationStartAt,
+            Instant registrationEndAt,
+            Integer oversPerInnings,
+            Integer squadSize,
+            Integer playingXiSize,
+            BigDecimal registrationFee,
+            String registrationCurrency,
+            BigDecimal winPoints,
+            BigDecimal tiePoints,
+            BigDecimal noResultPoints,
+            BigDecimal lossPoints
+    ) {
+
+        if (status != TournamentEditionStatus.DRAFT) {
+            throw new IllegalStateException(
+                    "Tournament edition configuration can only be changed while draft"
+            );
+        }
+
+        this.name = name;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.registrationStartAt = registrationStartAt;
+        this.registrationEndAt = registrationEndAt;
+        this.oversPerInnings = oversPerInnings;
+        this.squadSize = squadSize;
+        this.playingXiSize = playingXiSize;
+        this.registrationFee =
+                registrationFee != null
+                        ? registrationFee
+                        : BigDecimal.ZERO;
+        this.registrationCurrency =
+                registrationCurrency != null
+                        ? registrationCurrency
+                        : "BDT";
+        this.winPoints =
+                winPoints != null
+                        ? winPoints
+                        : BigDecimal.valueOf(2);
+        this.tiePoints =
+                tiePoints != null
+                        ? tiePoints
+                        : BigDecimal.ONE;
+        this.noResultPoints =
+                noResultPoints != null
+                        ? noResultPoints
+                        : BigDecimal.ONE;
+        this.lossPoints =
+                lossPoints != null
+                        ? lossPoints
+                        : BigDecimal.ZERO;
+    }
+
+    public void transitionTo(
+            TournamentEditionStatus target
+    ) {
+
+        if (!canTransitionTo(target)) {
+            throw new IllegalStateException(
+                    "Cannot transition tournament edition from "
+                            + status
+                            + " to "
+                            + target
+            );
+        }
+
+        status = target;
+    }
+
     public void markCompleted() {
 
         if (status == TournamentEditionStatus.CANCELLED) {
@@ -225,5 +298,36 @@ public class TournamentEdition extends BaseEntity {
         }
 
         status = TournamentEditionStatus.COMPLETED;
+    }
+
+    private boolean canTransitionTo(
+            TournamentEditionStatus target
+    ) {
+
+        if (target == null
+                || status == TournamentEditionStatus.CANCELLED
+                || status == TournamentEditionStatus.COMPLETED) {
+
+            return false;
+        }
+
+        return switch (status) {
+            case DRAFT ->
+                    target == TournamentEditionStatus.REGISTRATION_OPEN
+                            || target == TournamentEditionStatus.CANCELLED;
+            case REGISTRATION_OPEN ->
+                    target == TournamentEditionStatus.REGISTRATION_CLOSED
+                            || target == TournamentEditionStatus.CANCELLED;
+            case REGISTRATION_CLOSED ->
+                    target == TournamentEditionStatus.DRAFTING
+                            || target == TournamentEditionStatus.CANCELLED;
+            case DRAFTING ->
+                    target == TournamentEditionStatus.SCHEDULED
+                            || target == TournamentEditionStatus.CANCELLED;
+            case SCHEDULED ->
+                    target == TournamentEditionStatus.ONGOING
+                            || target == TournamentEditionStatus.CANCELLED;
+            case ONGOING, COMPLETED, CANCELLED -> false;
+        };
     }
 }

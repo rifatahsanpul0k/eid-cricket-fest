@@ -145,6 +145,23 @@ public class SecurityConfig {
                                 "ORGANIZER",
                                 "ADMIN"
                         )
+
+                        // Only organizer/admin can update tournament state
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/v1/tournaments/**"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/v1/tournaments/**"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
                                 // Player submitting own payment
                                 .requestMatchers(
                                         HttpMethod.POST,

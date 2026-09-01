@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/tournaments/{tournamentId}/editions/{editionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update tournament edition
+         * @description Updates draft-only edition configuration.
+         */
+        put: operations["updateEdition"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/matches/{matchId}/teams/{tournamentTeamId}/playing-xi": {
         parameters: {
             query?: never;
@@ -517,6 +537,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tournaments/{tournamentId}/editions/{editionId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Transition tournament edition status
+         * @description Applies a controlled tournament lifecycle transition.
+         */
+        patch: operations["updateEditionStatus"];
+        trace?: never;
+    };
     "/api/v1/tournament-teams/{tournamentTeamId}/captain": {
         parameters: {
             query?: never;
@@ -962,6 +1002,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/players/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List active player categories */
+        get: operations["getCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get match setup details */
+        get: operations["setupDetails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/matches/{matchId}/scorecard": {
         parameters: {
             query?: never;
@@ -996,27 +1070,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/matches/{matchId}/setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get match setup details */
-        get: operations["setupDetails"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UpdateTournamentEditionRequest: {
+            name: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: date-time */
+            registrationStartAt?: string;
+            /** Format: date-time */
+            registrationEndAt?: string;
+            /** Format: int32 */
+            oversPerInnings: number;
+            /** Format: int32 */
+            squadSize: number;
+            /** Format: int32 */
+            playingXiSize: number;
+            registrationFee?: number;
+            registrationCurrency?: string;
+            winPoints?: number;
+            tiePoints?: number;
+            noResultPoints?: number;
+            lossPoints?: number;
+            tournamentDateRangeValid?: boolean;
+            registrationRangeValid?: boolean;
+            playingXiSizeValid?: boolean;
+        };
+        TournamentEditionResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            tournamentId?: number;
+            name?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: date-time */
+            registrationStartAt?: string;
+            /** Format: date-time */
+            registrationEndAt?: string;
+            /** Format: int32 */
+            oversPerInnings?: number;
+            /** Format: int32 */
+            squadSize?: number;
+            /** Format: int32 */
+            playingXiSize?: number;
+            registrationFee?: number;
+            registrationCurrency?: string;
+            winPoints?: number;
+            tiePoints?: number;
+            noResultPoints?: number;
+            lossPoints?: number;
+            /** @enum {string} */
+            status?: "DRAFT" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "DRAFTING" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         SubmitPlayingXiRequest: {
             registrationIds: number[];
             /** Format: int64 */
@@ -1117,39 +1233,7 @@ export interface components {
             lossPoints?: number;
             tournamentDateRangeValid?: boolean;
             registrationRangeValid?: boolean;
-        };
-        TournamentEditionResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            tournamentId?: number;
-            name?: string;
-            /** Format: date */
-            startDate?: string;
-            /** Format: date */
-            endDate?: string;
-            /** Format: date-time */
-            registrationStartAt?: string;
-            /** Format: date-time */
-            registrationEndAt?: string;
-            /** Format: int32 */
-            oversPerInnings?: number;
-            /** Format: int32 */
-            squadSize?: number;
-            /** Format: int32 */
-            playingXiSize?: number;
-            registrationFee?: number;
-            registrationCurrency?: string;
-            winPoints?: number;
-            tiePoints?: number;
-            noResultPoints?: number;
-            lossPoints?: number;
-            /** @enum {string} */
-            status?: "DRAFT" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "DRAFTING" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
+            playingXiSizeValid?: boolean;
         };
         CaptainInfo: {
             /** Format: int64 */
@@ -1496,6 +1580,10 @@ export interface components {
             identifier: string;
             password: string;
         };
+        UpdateTournamentEditionStatusRequest: {
+            /** @enum {string} */
+            status: "DRAFT" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "DRAFTING" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+        };
         AssignCaptainRequest: {
             /** Format: int64 */
             registrationId: number;
@@ -1792,14 +1880,14 @@ export interface components {
             live?: components["schemas"]["LiveMatchResponse"];
             teamAPlayingXi?: components["schemas"]["PlayingXiPlayer"][];
             teamBPlayingXi?: components["schemas"]["PlayingXiPlayer"][];
+            dismissedPlayingXiIds?: number[];
+            /** Format: int64 */
+            previousOverBowlerPlayingXiId?: number;
             /** Format: int64 */
             nextInningsBattingTeamId?: number;
             /** Format: int64 */
             nextInningsBowlingTeamId?: number;
             assignedToCurrentUser?: boolean;
-            dismissedPlayingXiIds?: number[];
-            /** Format: int64 */
-            previousOverBowlerPlayingXiId?: number | null;
         };
         PageResponsePlayerResponse: {
             content?: components["schemas"]["PlayerResponse"][];
@@ -1857,6 +1945,31 @@ export interface components {
             batting?: components["schemas"]["BattingCareer"];
             bowling?: components["schemas"]["BowlingCareer"];
         };
+        PlayerCategoryResponse: {
+            /** Format: int32 */
+            id?: number;
+            code?: string;
+            name?: string;
+        };
+        MatchSetupDetailsResponse: {
+            scorers?: components["schemas"]["ScorerAssignment"][];
+            teamAPlayingXi?: components["schemas"]["TeamPlayingXi"];
+            teamBPlayingXi?: components["schemas"]["TeamPlayingXi"];
+        };
+        ScorerAssignment: {
+            /** Format: int64 */
+            userId?: number;
+            displayName?: string;
+            email?: string;
+            primary?: boolean;
+        };
+        TeamPlayingXi: {
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            registrationIds?: number[];
+            /** Format: int64 */
+            wicketkeeperRegistrationId?: number;
+        };
         BattingRow: {
             /** Format: int64 */
             playerId?: number;
@@ -1900,25 +2013,6 @@ export interface components {
             matchId?: number;
             innings?: components["schemas"]["InningsScorecard"][];
         };
-        MatchSetupDetailsResponse: {
-            scorers?: components["schemas"]["ScorerAssignment"][];
-            teamAPlayingXi?: components["schemas"]["TeamPlayingXi"];
-            teamBPlayingXi?: components["schemas"]["TeamPlayingXi"];
-        };
-        ScorerAssignment: {
-            /** Format: int64 */
-            userId?: number;
-            displayName?: string;
-            email?: string;
-            primary?: boolean;
-        };
-        TeamPlayingXi: {
-            /** Format: int64 */
-            tournamentTeamId?: number;
-            registrationIds?: number[];
-            /** Format: int64 */
-            wicketkeeperRegistrationId?: number | null;
-        };
     };
     responses: never;
     parameters: never;
@@ -1928,6 +2022,33 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    updateEdition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournamentId: number;
+                editionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTournamentEditionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TournamentEditionResponse"];
+                };
+            };
+        };
+    };
     submitPlayingXi: {
         parameters: {
             query?: never;
@@ -2881,6 +3002,33 @@ export interface operations {
             };
         };
     };
+    updateEditionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tournamentId: number;
+                editionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTournamentEditionStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TournamentEditionResponse"];
+                };
+            };
+        };
+    };
     assignCaptain: {
         parameters: {
             query?: never;
@@ -3501,6 +3649,48 @@ export interface operations {
             };
         };
     };
+    getCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlayerCategoryResponse"][];
+                };
+            };
+        };
+    };
+    setupDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchSetupDetailsResponse"];
+                };
+            };
+        };
+    };
     scorecard: {
         parameters: {
             query?: never;
@@ -3541,28 +3731,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LiveMatchResponse"];
-                };
-            };
-        };
-    };
-    setupDetails: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                matchId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatchSetupDetailsResponse"];
                 };
             };
         };

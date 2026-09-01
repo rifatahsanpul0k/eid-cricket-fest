@@ -19,6 +19,12 @@ public interface TournamentEditionRepository
             String name
     );
 
+    boolean existsByTournament_IdAndNameIgnoreCaseAndIdNot(
+            Long tournamentId,
+            String name,
+            Long id
+    );
+
     List<TournamentEdition> findByTournament_IdOrderByCreatedAtDesc(
             Long tournamentId
     );

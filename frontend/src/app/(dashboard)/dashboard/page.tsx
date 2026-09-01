@@ -56,6 +56,16 @@ export default async function DashboardPage() {
         title="Tournament Dashboard"
       />
       <section className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-8 sm:px-6 lg:px-8">
+        <DashboardSection title="Tournament Setup">
+          <DashboardCard
+            actionLabel="Manage tournament"
+            description="Create and configure tournament editions, registration settings, and tournament lifecycle status."
+            eyebrow="Tournament setup"
+            href="/dashboard/tournament"
+            label="Tournament"
+          />
+        </DashboardSection>
+
         <DashboardSection title="Player Management">
           <DashboardCard
             actionLabel="Review registrations"

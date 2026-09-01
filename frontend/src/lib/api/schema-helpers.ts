@@ -22,6 +22,17 @@ export type DraftPoolPlayerResponse =
   components["schemas"]["DraftPoolPlayerResponse"];
 export type CreateDraftRequest = components["schemas"]["CreateDraftRequest"];
 export type DraftPickRequest = components["schemas"]["DraftPickRequest"];
+export type CreateTournamentRequest =
+  components["schemas"]["CreateTournamentRequest"];
+export type CreateTournamentEditionRequest =
+  components["schemas"]["CreateTournamentEditionRequest"];
+export type UpdateTournamentEditionRequest =
+  components["schemas"]["UpdateTournamentEditionRequest"];
+export type UpdateTournamentEditionStatusRequest =
+  components["schemas"]["UpdateTournamentEditionStatusRequest"];
+export type TournamentEditionResponse =
+  components["schemas"]["TournamentEditionResponse"];
+export type TournamentResponse = components["schemas"]["TournamentResponse"];
 export type MatchResponse = components["schemas"]["MatchResponse"];
 export type MatchSetupDetailsResponse =
   components["schemas"]["MatchSetupDetailsResponse"];

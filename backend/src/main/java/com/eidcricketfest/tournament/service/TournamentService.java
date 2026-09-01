@@ -6,6 +6,8 @@ import com.eidcricketfest.tournament.dto.CreateTournamentEditionRequest;
 import com.eidcricketfest.tournament.dto.CreateTournamentRequest;
 import com.eidcricketfest.tournament.dto.TournamentEditionResponse;
 import com.eidcricketfest.tournament.dto.TournamentResponse;
+import com.eidcricketfest.tournament.dto.UpdateTournamentEditionRequest;
+import com.eidcricketfest.tournament.dto.UpdateTournamentEditionStatusRequest;
 import com.eidcricketfest.tournament.entity.Tournament;
 import com.eidcricketfest.tournament.entity.TournamentEdition;
 import com.eidcricketfest.tournament.repository.TournamentEditionRepository;
@@ -130,6 +132,83 @@ public class TournamentService {
         return toResponse(savedEdition);
     }
 
+    public TournamentEditionResponse updateEdition(
+            Long tournamentId,
+            Long editionId,
+            UpdateTournamentEditionRequest request
+    ) {
+
+        findTournament(tournamentId);
+
+        TournamentEdition edition =
+                findEditionForTournament(
+                        tournamentId,
+                        editionId
+                );
+
+        String name = request.name().trim();
+
+        if (editionRepository
+                .existsByTournament_IdAndNameIgnoreCaseAndIdNot(
+                        tournamentId,
+                        name,
+                        editionId
+                )) {
+
+            throw new ConflictException(
+                    "Tournament edition already exists: " + name
+            );
+        }
+
+        try {
+            edition.updateConfiguration(
+                    name,
+                    request.startDate(),
+                    request.endDate(),
+                    request.registrationStartAt(),
+                    request.registrationEndAt(),
+                    request.oversPerInnings(),
+                    request.squadSize(),
+                    request.playingXiSize(),
+                    registrationFeeOrDefault(request.registrationFee()),
+                    registrationCurrencyOrDefault(
+                            request.registrationCurrency()
+                    ),
+                    request.winPoints(),
+                    request.tiePoints(),
+                    request.noResultPoints(),
+                    request.lossPoints()
+            );
+        } catch (IllegalStateException ex) {
+            throw new ConflictException(ex.getMessage());
+        }
+
+        return toResponse(edition);
+    }
+
+    public TournamentEditionResponse transitionEditionStatus(
+            Long tournamentId,
+            Long editionId,
+            UpdateTournamentEditionStatusRequest request
+    ) {
+
+        findTournament(tournamentId);
+
+        TournamentEdition edition =
+                findEditionForTournament(
+                        tournamentId,
+                        editionId
+                );
+
+        try {
+            edition.transitionTo(request.status());
+        } catch (IllegalStateException ex) {
+            throw new ConflictException(ex.getMessage());
+        }
+
+        return toResponse(edition);
+    }
+
     @Transactional(readOnly = true)
     public List<TournamentEditionResponse> getEditions(
             Long tournamentId
@@ -156,6 +235,52 @@ public class TournamentService {
                                 "Tournament not found with id: " + id
                         )
                 );
+    }
+
+    private TournamentEdition findEditionForTournament(
+            Long tournamentId,
+            Long editionId
+    ) {
+
+        TournamentEdition edition =
+                editionRepository.findByIdForUpdate(editionId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Tournament edition not found with id: "
+                                                + editionId
+                                )
+                        );
+
+        if (!edition.getTournament()
+                .getId()
+                .equals(tournamentId)) {
+
+            throw new ResourceNotFoundException(
+                    "Tournament edition not found with id: " + editionId
+            );
+        }
+
+        return edition;
+    }
+
+    private BigDecimal registrationFeeOrDefault(
+            BigDecimal registrationFee
+    ) {
+
+        return registrationFee != null
+                ? registrationFee
+                : BigDecimal.ZERO;
+    }
+
+    private String registrationCurrencyOrDefault(
+            String registrationCurrency
+    ) {
+
+        return registrationCurrency != null
+                ? registrationCurrency
+                .trim()
+                .toUpperCase(Locale.ROOT)
+                : "BDT";
     }
 
     private TournamentResponse toResponse(

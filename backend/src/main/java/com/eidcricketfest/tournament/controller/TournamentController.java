@@ -4,6 +4,8 @@ import com.eidcricketfest.tournament.dto.CreateTournamentEditionRequest;
 import com.eidcricketfest.tournament.dto.CreateTournamentRequest;
 import com.eidcricketfest.tournament.dto.TournamentEditionResponse;
 import com.eidcricketfest.tournament.dto.TournamentResponse;
+import com.eidcricketfest.tournament.dto.UpdateTournamentEditionRequest;
+import com.eidcricketfest.tournament.dto.UpdateTournamentEditionStatusRequest;
 import com.eidcricketfest.tournament.service.TournamentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -75,6 +77,42 @@ public class TournamentController {
     ) {
         return tournamentService.createEdition(
                 tournamentId,
+                request
+        );
+    }
+
+    @Operation(
+            summary = "Update tournament edition",
+            description = "Updates draft-only edition configuration."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/{tournamentId}/editions/{editionId}")
+    public TournamentEditionResponse updateEdition(
+            @PathVariable Long tournamentId,
+            @PathVariable Long editionId,
+            @Valid @RequestBody UpdateTournamentEditionRequest request
+    ) {
+        return tournamentService.updateEdition(
+                tournamentId,
+                editionId,
+                request
+        );
+    }
+
+    @Operation(
+            summary = "Transition tournament edition status",
+            description = "Applies a controlled tournament lifecycle transition."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @PatchMapping("/{tournamentId}/editions/{editionId}/status")
+    public TournamentEditionResponse updateEditionStatus(
+            @PathVariable Long tournamentId,
+            @PathVariable Long editionId,
+            @Valid @RequestBody UpdateTournamentEditionStatusRequest request
+    ) {
+        return tournamentService.transitionEditionStatus(
+                tournamentId,
+                editionId,
                 request
         );
     }

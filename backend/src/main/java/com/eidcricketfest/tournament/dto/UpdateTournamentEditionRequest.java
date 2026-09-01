@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
-public record CreateTournamentEditionRequest(
+public record UpdateTournamentEditionRequest(
 
         @NotBlank
         @Size(max = 150)
@@ -19,6 +19,7 @@ public record CreateTournamentEditionRequest(
         Instant registrationStartAt,
 
         Instant registrationEndAt,
+
         @NotNull
         @Positive
         Integer oversPerInnings,
