@@ -225,6 +225,13 @@ public abstract class CricketIntegrationSupport
                         overs
                 );
 
+        MatchSides matchSides =
+                createMatchSides(
+                        matchId,
+                        teamAId,
+                        teamBId
+                );
+
         Short categoryId =
                 jdbcTemplate.queryForObject(
                         """
@@ -295,17 +302,19 @@ public abstract class CricketIntegrationSupport
                     match_id,
                     tournament_edition_id,
                     winner_team_id,
+                    winner_match_side_id,
                     decision,
                     recorded_by_user_id,
                     recorded_at
                 )
                 VALUES (
-                    ?, ?, ?, 'BAT', ?, CURRENT_TIMESTAMP
+                    ?, ?, ?, ?, 'BAT', ?, CURRENT_TIMESTAMP
                 )
                 """,
                 matchId,
                 editionId,
                 teamAId,
+                matchSides.teamASideId(),
                 actorId
         );
 
@@ -386,6 +395,78 @@ public abstract class CricketIntegrationSupport
     }
 
 
+    private MatchSides createMatchSides(
+            Long matchId,
+            Long teamAId,
+            Long teamBId
+    ) {
+
+        Long teamASideId =
+                createMatchSide(
+                        matchId,
+                        teamAId,
+                        "A"
+                );
+
+        Long teamBSideId =
+                createMatchSide(
+                        matchId,
+                        teamBId,
+                        "B"
+                );
+
+        jdbcTemplate.update(
+                """
+                UPDATE matches
+                SET
+                    team_a_side_id = ?,
+                    team_b_side_id = ?
+                WHERE id = ?
+                """,
+                teamASideId,
+                teamBSideId,
+                matchId
+        );
+
+        return new MatchSides(
+                teamASideId,
+                teamBSideId
+        );
+    }
+
+
+    private Long createMatchSide(
+            Long matchId,
+            Long tournamentTeamId,
+            String sideKey
+    ) {
+
+        return jdbcTemplate.queryForObject(
+                """
+                INSERT INTO match_sides (
+                    match_id,
+                    side_key,
+                    display_name,
+                    tournament_team_id
+                )
+                SELECT
+                    ?,
+                    ?,
+                    t.name,
+                    tt.id
+                FROM tournament_teams tt
+                JOIN teams t ON t.id = tt.team_id
+                WHERE tt.id = ?
+                RETURNING id
+                """,
+                Long.class,
+                matchId,
+                sideKey,
+                tournamentTeamId
+        );
+    }
+
+
     private XiPlayer createXiPlayer(
             Long matchId,
             Long editionId,
@@ -462,31 +543,39 @@ public abstract class CricketIntegrationSupport
                             match_id,
                             tournament_edition_id,
                             tournament_team_id,
+                            match_side_id,
                             player_registration_id,
+                            player_id,
 
                             is_captain,
                             is_wicketkeeper,
 
                             created_at
                         )
-                        VALUES (
+                        SELECT
                             ?,
                             ?,
                             ?,
+                            ms.id,
                             ?,
-
+                            pr.player_id,
                             false,
                             false,
-
                             CURRENT_TIMESTAMP
-                        )
+                        FROM match_sides ms
+                        JOIN player_registrations pr ON pr.id = ?
+                        WHERE ms.match_id = ?
+                          AND ms.tournament_team_id = ?
                         RETURNING id
                         """,
                         Long.class,
                         matchId,
                         editionId,
                         tournamentTeamId,
-                        registrationId
+                        registrationId,
+                        registrationId,
+                        matchId,
+                        tournamentTeamId
                 );
 
         return new XiPlayer(
@@ -583,6 +672,12 @@ public abstract class CricketIntegrationSupport
             Long playerId,
             Long registrationId,
             Long xiId
+    ) {}
+
+
+    private record MatchSides(
+            Long teamASideId,
+            Long teamBSideId
     ) {}
 
 

@@ -4,6 +4,7 @@ import com.eidcricketfest.common.exception.*;
 import com.eidcricketfest.knockout.dto.KnockoutBracketResponse;
 import com.eidcricketfest.match.entity.*;
 import com.eidcricketfest.match.repository.CricketMatchRepository;
+import com.eidcricketfest.match.repository.MatchSideRepository;
 import com.eidcricketfest.standings.dto.StandingsResponse;
 import com.eidcricketfest.standings.service.StandingsService;
 import com.eidcricketfest.team.entity.TournamentTeam;
@@ -25,17 +26,20 @@ public class KnockoutService {
     private final TournamentEditionRepository editionRepository;
     private final TournamentTeamRepository tournamentTeamRepository;
     private final CricketMatchRepository matchRepository;
+    private final MatchSideRepository matchSideRepository;
     private final StandingsService standingsService;
 
     public KnockoutService(
             TournamentEditionRepository editionRepository,
             TournamentTeamRepository tournamentTeamRepository,
             CricketMatchRepository matchRepository,
+            MatchSideRepository matchSideRepository,
             StandingsService standingsService
     ) {
         this.editionRepository = editionRepository;
         this.tournamentTeamRepository = tournamentTeamRepository;
         this.matchRepository = matchRepository;
+        this.matchSideRepository = matchSideRepository;
         this.standingsService = standingsService;
     }
 
@@ -192,6 +196,9 @@ public class KnockoutService {
                 )
         );
 
+        attachTournamentSides(semiFinalOne);
+        attachTournamentSides(semiFinalTwo);
+
         return getBracket(editionId);
     }
 
@@ -272,8 +279,34 @@ public class KnockoutService {
         );
 
         matchRepository.save(finalMatch);
+        attachTournamentSides(finalMatch);
 
         return true;
+    }
+
+    private void attachTournamentSides(CricketMatch match) {
+
+        MatchSide sideA =
+                matchSideRepository.save(
+                        new MatchSide(
+                                match,
+                                MatchSideKey.A,
+                                match.getTeamA().getTeam().getName(),
+                                match.getTeamA()
+                        )
+                );
+
+        MatchSide sideB =
+                matchSideRepository.save(
+                        new MatchSide(
+                                match,
+                                MatchSideKey.B,
+                                match.getTeamB().getTeam().getName(),
+                                match.getTeamB()
+                        )
+                );
+
+        match.attachSides(sideA, sideB);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

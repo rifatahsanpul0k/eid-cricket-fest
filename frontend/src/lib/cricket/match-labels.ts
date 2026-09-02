@@ -9,6 +9,7 @@ export const MATCH_STATUS_LABELS: Record<MatchStatus, string> = {
   TOSS_COMPLETED: "Toss Complete",
   LIVE: "Live",
   INNINGS_BREAK: "Innings Break",
+  SUSPENDED: "Suspended",
   COMPLETED: "Completed",
   POSTPONED: "Postponed",
   ABANDONED: "Abandoned",

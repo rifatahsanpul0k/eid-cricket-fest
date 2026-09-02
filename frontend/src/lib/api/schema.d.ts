@@ -1348,7 +1348,7 @@ export interface components {
             /** @enum {string} */
             stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
             /** @enum {string} */
-            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
             teamA?: components["schemas"]["KnockoutTeamInfo"];
             teamB?: components["schemas"]["KnockoutTeamInfo"];
             winner?: components["schemas"]["KnockoutTeamInfo"];
@@ -1364,6 +1364,8 @@ export interface components {
         MatchResponse: {
             /** Format: int64 */
             id?: number;
+            /** @enum {string} */
+            matchType?: "TOURNAMENT" | "FRIENDLY";
             /** Format: int32 */
             matchNumber?: number;
             /** Format: int32 */
@@ -1371,7 +1373,13 @@ export interface components {
             /** @enum {string} */
             stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
             /** @enum {string} */
-            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            /** @enum {string} */
+            resultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
+            /** Format: int64 */
+            rematchOfMatchId?: number;
+            /** Format: int64 */
+            supersededByMatchId?: number;
             teamA?: components["schemas"]["MatchTeamInfo"];
             teamB?: components["schemas"]["MatchTeamInfo"];
             /** Format: int32 */
@@ -1383,11 +1391,59 @@ export interface components {
             teamAPlayingXiSubmitted?: boolean;
             teamBPlayingXiSubmitted?: boolean;
             tossCompleted?: boolean;
+            availableOperations?: ("RESCHEDULE" | "POSTPONE" | "SUSPEND" | "RESUME" | "ABANDON" | "CANCEL" | "RESET_TOSS" | "MARK_UNDER_REVIEW" | "RESTORE_OFFICIAL" | "VOID_RESULT" | "ORDER_REMATCH")[];
+            operationHistory?: components["schemas"]["MatchOperationHistoryResponse"][];
+        };
+        MatchOperationHistoryResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            operationType?: "RESCHEDULE" | "POSTPONE" | "SUSPEND" | "RESUME" | "ABANDON" | "CANCEL" | "RESET_TOSS" | "MARK_UNDER_REVIEW" | "RESTORE_OFFICIAL" | "VOID_RESULT" | "ORDER_REMATCH";
+            /** Format: int64 */
+            actorUserId?: number;
+            actorName?: string;
+            reason?: string;
+            /** @enum {string} */
+            oldStatus?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            /** @enum {string} */
+            newStatus?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            /** @enum {string} */
+            oldResultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
+            /** @enum {string} */
+            newResultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
+            metadata?: string;
+            /** Format: int64 */
+            relatedMatchId?: number;
+            /** Format: date-time */
+            createdAt?: string;
         };
         MatchTeamInfo: {
             /** Format: int64 */
+            matchSideId?: number;
+            /** Format: int64 */
             tournamentTeamId?: number;
             name?: string;
+        };
+        CreateFriendlyMatchRequest: {
+            teamAName: string;
+            teamBName: string;
+            teamAPlayerIds: number[];
+            teamBPlayerIds: number[];
+            /** Format: int32 */
+            oversPerInnings: number;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: int64 */
+            venueId: number;
+        };
+        FriendlyPlayerOptionResponse: {
+            /** Format: int64 */
+            playerId?: number;
+            fullName?: string;
+            photoUrl?: string;
+            primaryCategory?: string;
+            battingStyle?: string;
+            bowlingStyle?: string;
         };
         VenueInfo: {
             /** Format: int64 */
@@ -1527,7 +1583,9 @@ export interface components {
         };
         RecordTossRequest: {
             /** Format: int64 */
-            winnerTournamentTeamId: number;
+            winnerTournamentTeamId?: number;
+            /** Format: int64 */
+            winnerMatchSideId?: number;
             /** @enum {string} */
             decision: "BAT" | "BOWL";
         };
@@ -1657,6 +1715,24 @@ export interface components {
             scheduledAt: string;
             /** Format: int64 */
             venueId: number;
+        };
+        RescheduleMatchOperationRequest: {
+            /** Format: date-time */
+            scheduledAt: string;
+            /** Format: int64 */
+            venueId: number;
+            /** Format: int32 */
+            oversPerInnings?: number;
+            reason: string;
+        };
+        OrderRematchRequest: {
+            reason: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: int64 */
+            venueId?: number;
+            /** Format: int32 */
+            oversPerInnings?: number;
         };
         NoResultRequest: {
             reason: string;
@@ -1903,7 +1979,7 @@ export interface components {
             /** Format: int32 */
             matchNumber?: number;
             /** @enum {string} */
-            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
             teamA?: string;
             teamB?: string;
             innings?: components["schemas"]["InningsInfo"];
@@ -2101,7 +2177,7 @@ export interface components {
             /** @enum {string} */
             stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
             /** @enum {string} */
-            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
             /** Format: date-time */
             scheduledAt?: string;
             /** Format: int32 */
@@ -2140,10 +2216,15 @@ export interface components {
         };
         TeamPlayingXi: {
             /** Format: int64 */
+            matchSideId?: number;
+            /** Format: int64 */
             tournamentTeamId?: number;
             registrationIds?: number[];
+            playerIds?: number[];
             /** Format: int64 */
             wicketkeeperRegistrationId?: number;
+            /** Format: int64 */
+            wicketkeeperPlayerId?: number;
         };
         BattingRow: {
             /** Format: int64 */
@@ -3667,7 +3748,7 @@ export interface operations {
     getMatches: {
         parameters: {
             query?: {
-                status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+                status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
                 stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
                 teamId?: number;
                 page?: number;

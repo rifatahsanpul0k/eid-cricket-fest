@@ -437,7 +437,8 @@ class MatchSetupDetailsIntegrationTest
             Long teamBId
     ) {
 
-        return jdbcTemplate.queryForObject(
+        Long matchId =
+                jdbcTemplate.queryForObject(
                 """
                 INSERT INTO matches (
                     tournament_edition_id,
@@ -471,6 +472,79 @@ class MatchSetupDetailsIntegrationTest
                 editionId,
                 teamAId,
                 teamBId
+        );
+
+        createMatchSides(
+                matchId,
+                teamAId,
+                teamBId
+        );
+
+        return matchId;
+    }
+
+    private void createMatchSides(
+            Long matchId,
+            Long teamAId,
+            Long teamBId
+    ) {
+
+        Long teamASideId =
+                createMatchSide(
+                        matchId,
+                        teamAId,
+                        "A"
+                );
+
+        Long teamBSideId =
+                createMatchSide(
+                        matchId,
+                        teamBId,
+                        "B"
+                );
+
+        jdbcTemplate.update(
+                """
+                UPDATE matches
+                SET
+                    team_a_side_id = ?,
+                    team_b_side_id = ?
+                WHERE id = ?
+                """,
+                teamASideId,
+                teamBSideId,
+                matchId
+        );
+    }
+
+    private Long createMatchSide(
+            Long matchId,
+            Long tournamentTeamId,
+            String sideKey
+    ) {
+
+        return jdbcTemplate.queryForObject(
+                """
+                INSERT INTO match_sides (
+                    match_id,
+                    side_key,
+                    display_name,
+                    tournament_team_id
+                )
+                SELECT
+                    ?,
+                    ?,
+                    t.name,
+                    tt.id
+                FROM tournament_teams tt
+                JOIN teams t ON t.id = tt.team_id
+                WHERE tt.id = ?
+                RETURNING id
+                """,
+                Long.class,
+                matchId,
+                sideKey,
+                tournamentTeamId
         );
     }
 
@@ -520,25 +594,35 @@ class MatchSetupDetailsIntegrationTest
                     match_id,
                     tournament_edition_id,
                     tournament_team_id,
+                    match_side_id,
                     player_registration_id,
+                    player_id,
                     is_captain,
                     is_wicketkeeper
                 )
-                VALUES (
+                SELECT
                     ?,
                     ?,
                     ?,
+                    ms.id,
                     ?,
+                    pr.player_id,
                     ?,
                     ?
-                )
+                FROM match_sides ms
+                JOIN player_registrations pr ON pr.id = ?
+                WHERE ms.match_id = ?
+                  AND ms.tournament_team_id = ?
                 """,
                 matchId,
                 editionId,
                 tournamentTeamId,
                 registrationId,
                 captain,
-                wicketkeeper
+                wicketkeeper,
+                registrationId,
+                matchId,
+                tournamentTeamId
         );
     }
 }

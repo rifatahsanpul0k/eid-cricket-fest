@@ -860,7 +860,8 @@ class MyCricketIntegrationTest
             String resultSummary
     ) {
 
-        return jdbcTemplate.queryForObject(
+        Long matchId =
+                jdbcTemplate.queryForObject(
                 """
                 INSERT INTO matches (
                     tournament_edition_id,
@@ -910,6 +911,99 @@ class MyCricketIntegrationTest
                 winnerTeamId,
                 resultSummary
         );
+
+        MatchSides matchSides =
+                createMatchSides(
+                        matchId,
+                        teamAId,
+                        teamBId
+                );
+
+        if (winnerTeamId != null) {
+            jdbcTemplate.update(
+                    """
+                    UPDATE matches
+                    SET winner_side_id = ?
+                    WHERE id = ?
+                    """,
+                    winnerTeamId.equals(teamAId)
+                            ? matchSides.teamASideId()
+                            : matchSides.teamBSideId(),
+                    matchId
+            );
+        }
+
+        return matchId;
+    }
+
+    private MatchSides createMatchSides(
+            Long matchId,
+            Long teamAId,
+            Long teamBId
+    ) {
+
+        Long teamASideId =
+                createMatchSide(
+                        matchId,
+                        teamAId,
+                        "A"
+                );
+
+        Long teamBSideId =
+                createMatchSide(
+                        matchId,
+                        teamBId,
+                        "B"
+                );
+
+        jdbcTemplate.update(
+                """
+                UPDATE matches
+                SET
+                    team_a_side_id = ?,
+                    team_b_side_id = ?
+                WHERE id = ?
+                """,
+                teamASideId,
+                teamBSideId,
+                matchId
+        );
+
+        return new MatchSides(
+                teamASideId,
+                teamBSideId
+        );
+    }
+
+    private Long createMatchSide(
+            Long matchId,
+            Long tournamentTeamId,
+            String sideKey
+    ) {
+
+        return jdbcTemplate.queryForObject(
+                """
+                INSERT INTO match_sides (
+                    match_id,
+                    side_key,
+                    display_name,
+                    tournament_team_id
+                )
+                SELECT
+                    ?,
+                    ?,
+                    t.name,
+                    tt.id
+                FROM tournament_teams tt
+                JOIN teams t ON t.id = tt.team_id
+                WHERE tt.id = ?
+                RETURNING id
+                """,
+                Long.class,
+                matchId,
+                sideKey,
+                tournamentTeamId
+        );
     }
 
     private Long createPlayingXiEntry(
@@ -927,18 +1021,25 @@ class MyCricketIntegrationTest
                     match_id,
                     tournament_edition_id,
                     tournament_team_id,
+                    match_side_id,
                     player_registration_id,
+                    player_id,
                     is_captain,
                     is_wicketkeeper
                 )
-                VALUES (
+                SELECT
                     ?,
                     ?,
                     ?,
+                    ms.id,
                     ?,
+                    pr.player_id,
                     ?,
                     ?
-                )
+                FROM match_sides ms
+                JOIN player_registrations pr ON pr.id = ?
+                WHERE ms.match_id = ?
+                  AND ms.tournament_team_id = ?
                 RETURNING id
                 """,
                 Long.class,
@@ -947,7 +1048,10 @@ class MyCricketIntegrationTest
                 tournamentTeamId,
                 registrationId,
                 captain,
-                wicketkeeper
+                wicketkeeper,
+                registrationId,
+                matchId,
+                tournamentTeamId
         );
     }
 
@@ -970,6 +1074,8 @@ class MyCricketIntegrationTest
                     innings_number,
                     batting_team_id,
                     bowling_team_id,
+                    batting_match_side_id,
+                    bowling_match_side_id,
                     current_striker_xi_id,
                     current_non_striker_xi_id,
                     current_bowler_xi_id,
@@ -983,6 +1089,8 @@ class MyCricketIntegrationTest
                     ?,
                     ?,
                     ?,
+                    (SELECT id FROM match_sides WHERE match_id = ? AND tournament_team_id = ?),
+                    (SELECT id FROM match_sides WHERE match_id = ? AND tournament_team_id = ?),
                     ?,
                     ?,
                     ?,
@@ -997,6 +1105,10 @@ class MyCricketIntegrationTest
                 editionId,
                 inningsNumber,
                 battingTeamId,
+                bowlingTeamId,
+                matchId,
+                battingTeamId,
+                matchId,
                 bowlingTeamId,
                 strikerXiId,
                 nonStrikerXiId,
@@ -1107,5 +1219,12 @@ class MyCricketIntegrationTest
                 fielderXiId,
                 !"RUN_OUT".equals(dismissalType)
         );
+    }
+
+
+    private record MatchSides(
+            Long teamASideId,
+            Long teamBSideId
+    ) {
     }
 }

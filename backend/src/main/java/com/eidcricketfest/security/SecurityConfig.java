@@ -309,10 +309,48 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Friendly match creation/options
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/friendly-matches"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/friendly-matches/player-options"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/friendly-matches"
+                        ).permitAll()
+
                         // Match scheduling
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/v1/matches/*/schedule"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/v1/matches/*/operations/reschedule"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/matches/*/operations/**"
                         ).hasAnyRole(
                                 "ORGANIZER",
                                 "ADMIN"

@@ -6,6 +6,8 @@ import com.eidcricketfest.common.web.PageableFactory;
 import com.eidcricketfest.match.dto.*;
 import com.eidcricketfest.match.entity.*;
 import com.eidcricketfest.match.repository.*;
+import com.eidcricketfest.player.entity.Player;
+import com.eidcricketfest.player.repository.PlayerRepository;
 import com.eidcricketfest.team.entity.TournamentTeam;
 import com.eidcricketfest.team.repository.TournamentTeamRepository;
 import com.eidcricketfest.tournament.entity.TournamentEdition;
@@ -42,6 +44,9 @@ public class FixtureService {
     private final TournamentTeamRepository tournamentTeamRepository;
     private final MatchScorerRepository scorerRepository;
     private final PlayingXiEntryRepository playingXiRepository;
+    private final MatchSideRepository matchSideRepository;
+    private final MatchOperationAuditRepository auditRepository;
+    private final PlayerRepository playerRepository;
     private final PageableFactory pageableFactory;
 
     public FixtureService(
@@ -51,6 +56,9 @@ public class FixtureService {
             TournamentTeamRepository tournamentTeamRepository,
             MatchScorerRepository scorerRepository,
             PlayingXiEntryRepository playingXiRepository,
+            MatchSideRepository matchSideRepository,
+            MatchOperationAuditRepository auditRepository,
+            PlayerRepository playerRepository,
             PageableFactory pageableFactory
     ) {
         this.matchRepository = matchRepository;
@@ -59,7 +67,145 @@ public class FixtureService {
         this.tournamentTeamRepository = tournamentTeamRepository;
         this.scorerRepository = scorerRepository;
         this.playingXiRepository = playingXiRepository;
+        this.matchSideRepository = matchSideRepository;
+        this.auditRepository = auditRepository;
+        this.playerRepository = playerRepository;
         this.pageableFactory = pageableFactory;
+    }
+
+    public MatchResponse createFriendlyMatch(
+            CreateFriendlyMatchRequest request
+    ) {
+
+        String teamAName =
+                request.teamAName().trim();
+
+        String teamBName =
+                request.teamBName().trim();
+
+        if (teamAName.equalsIgnoreCase(teamBName)) {
+            throw new ConflictException(
+                    "Friendly match sides must have different names"
+            );
+        }
+
+        Set<Long> teamAPlayerIds =
+                uniquePlayers(
+                        request.teamAPlayerIds(),
+                        "Team A"
+                );
+
+        Set<Long> teamBPlayerIds =
+                uniquePlayers(
+                        request.teamBPlayerIds(),
+                        "Team B"
+                );
+
+        if (teamAPlayerIds.size() < 2
+                || teamBPlayerIds.size() < 2) {
+            throw new ConflictException(
+                    "Each side needs at least two players"
+            );
+        }
+
+        Set<Long> overlap =
+                new HashSet<>(teamAPlayerIds);
+
+        overlap.retainAll(teamBPlayerIds);
+
+        if (!overlap.isEmpty()) {
+            throw new ConflictException(
+                    "A player cannot be on both sides"
+            );
+        }
+
+        Venue venue =
+                venueRepository
+                        .findById(request.venueId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Venue not found"
+                                )
+                        );
+
+        Map<Long, Player> playersById =
+                playersById(
+                        teamAPlayerIds,
+                        teamBPlayerIds
+                );
+
+        CricketMatch match =
+                matchRepository.save(
+                        CricketMatch.friendly(
+                                request.oversPerInnings(),
+                                venue,
+                                request.scheduledAt()
+                        )
+                );
+
+        MatchSide sideA =
+                matchSideRepository.save(
+                        new MatchSide(
+                                match,
+                                MatchSideKey.A,
+                                teamAName,
+                                null
+                        )
+                );
+
+        MatchSide sideB =
+                matchSideRepository.save(
+                        new MatchSide(
+                                match,
+                                MatchSideKey.B,
+                                teamBName,
+                                null
+                        )
+                );
+
+        match.attachSides(sideA, sideB);
+
+        seedFriendlyPlayingXi(
+                match,
+                sideA,
+                teamAPlayerIds,
+                playersById
+        );
+
+        seedFriendlyPlayingXi(
+                match,
+                sideB,
+                teamBPlayerIds,
+                playersById
+        );
+
+        return toResponse(match);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FriendlyPlayerOptionResponse> friendlyPlayerOptions() {
+
+        return playerRepository
+                .findAllDetailedForFriendlyOptions()
+                .stream()
+                .map(player -> new FriendlyPlayerOptionResponse(
+                        player.getId(),
+                        player.getFullName(),
+                        player.getPhotoUrl(),
+                        player.getPrimaryCategory() != null
+                                ? player.getPrimaryCategory().getName()
+                                : null,
+                        player.getBattingStyle(),
+                        player.getBowlingStyle()
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MatchResponse> getFriendlyMatches() {
+        return toResponses(
+                matchRepository.findDetailedFriendlyMatches()
+        );
     }
 
     public List<MatchResponse> generateRoundRobin(
@@ -168,7 +314,83 @@ public class FixtureService {
             teams.add(1, last);
         }
 
-        return toResponses(matchRepository.saveAll(generated));
+        List<CricketMatch> saved =
+                matchRepository.saveAll(generated);
+
+        for (CricketMatch match : saved) {
+            attachTournamentSides(match);
+        }
+
+        return toResponses(saved);
+    }
+
+    private Set<Long> uniquePlayers(
+            List<Long> playerIds,
+            String sideName
+    ) {
+
+        Set<Long> unique =
+                new LinkedHashSet<>(playerIds);
+
+        if (unique.size() != playerIds.size()) {
+            throw new ConflictException(
+                    sideName + " contains duplicate players"
+            );
+        }
+
+        return unique;
+    }
+
+    @SafeVarargs
+    private Map<Long, Player> playersById(
+            Set<Long>... playerIdSets
+    ) {
+
+        Set<Long> allIds =
+                new LinkedHashSet<>();
+
+        for (Set<Long> playerIds : playerIdSets) {
+            allIds.addAll(playerIds);
+        }
+
+        Map<Long, Player> players =
+                new HashMap<>();
+
+        for (Player player : playerRepository.findAllById(allIds)) {
+            players.put(player.getId(), player);
+        }
+
+        if (players.size() != allIds.size()) {
+            throw new ResourceNotFoundException(
+                    "One or more players were not found"
+            );
+        }
+
+        return players;
+    }
+
+    private void seedFriendlyPlayingXi(
+            CricketMatch match,
+            MatchSide side,
+            Set<Long> playerIds,
+            Map<Long, Player> playersById
+    ) {
+
+        boolean captain = true;
+
+        for (Long playerId : playerIds) {
+            playingXiRepository.save(
+                    new PlayingXiEntry(
+                            match,
+                            side,
+                            playersById.get(playerId),
+                            captain,
+                            false
+                    )
+            );
+
+            captain = false;
+        }
     }
 
     public MatchResponse scheduleMatch(
@@ -261,6 +483,16 @@ public class FixtureService {
         return PageResponse.from(matches);
     }
 
+    public MatchResponse getMatch(
+            Long id
+    ) {
+
+        return toResponse(
+                findMatch(id),
+                true
+        );
+    }
+
     private CricketMatch findMatch(Long id) {
 
         return matchRepository
@@ -290,13 +522,36 @@ public class FixtureService {
     private MatchResponse toResponse(CricketMatch match) {
         return toResponse(
                 match,
-                readinessFor(List.of(match))
+                false
+        );
+    }
+
+    private MatchResponse toResponse(
+            CricketMatch match,
+            boolean includeHistory
+    ) {
+        return toResponse(
+                match,
+                readinessFor(List.of(match)),
+                includeHistory
         );
     }
 
     private MatchResponse toResponse(
             CricketMatch match,
             MatchReadiness readiness
+    ) {
+        return toResponse(
+                match,
+                readiness,
+                false
+        );
+    }
+
+    private MatchResponse toResponse(
+            CricketMatch match,
+            MatchReadiness readiness,
+            boolean includeHistory
     ) {
 
         MatchResponse.VenueInfo venue = null;
@@ -310,23 +565,37 @@ public class FixtureService {
 
         return new MatchResponse(
                 match.getId(),
+                match.getMatchType(),
                 match.getMatchNumber(),
                 match.getRoundNumber(),
                 match.getStage(),
                 match.getStatus(),
+                match.getResultStatus(),
+                match.getRematchOfMatch() != null
+                        ? match.getRematchOfMatch().getId()
+                        : null,
+                match.getSupersededByMatch() != null
+                        ? match.getSupersededByMatch().getId()
+                        : null,
 
                 new MatchResponse.TeamInfo(
-                        match.getTeamA().getId(),
-                        match.getTeamA()
-                                .getTeam()
-                                .getName()
+                        match.getTeamASide() != null
+                                ? match.getTeamASide().getId()
+                                : null,
+                        match.getTeamA() != null
+                                ? match.getTeamA().getId()
+                                : null,
+                        sideName(match.getTeamASide())
                 ),
 
                 new MatchResponse.TeamInfo(
-                        match.getTeamB().getId(),
-                        match.getTeamB()
-                                .getTeam()
-                                .getName()
+                        match.getTeamBSide() != null
+                                ? match.getTeamBSide().getId()
+                                : null,
+                        match.getTeamB() != null
+                                ? match.getTeamB().getId()
+                                : null,
+                        sideName(match.getTeamBSide())
                 ),
 
                 match.getOversPerInnings(),
@@ -335,14 +604,130 @@ public class FixtureService {
                 readiness.scorerAssigned(match),
                 readiness.playingXiSubmitted(
                         match,
-                        match.getTeamA().getId()
+                        match.getTeamASide().getId()
                 ),
                 readiness.playingXiSubmitted(
                         match,
-                        match.getTeamB().getId()
+                        match.getTeamBSide().getId()
                 ),
-                readiness.tossCompleted(match)
+                readiness.tossCompleted(match),
+                availableOperations(match),
+                includeHistory
+                        ? operationHistory(match.getId())
+                        : List.of()
         );
+    }
+
+    private List<MatchOperationHistoryResponse> operationHistory(
+            Long matchId
+    ) {
+        return auditRepository
+                .findDetailedByMatchId(matchId)
+                .stream()
+                .map(audit ->
+                        new MatchOperationHistoryResponse(
+                                audit.getId(),
+                                audit.getOperationType(),
+                                audit.getActor().getId(),
+                                audit.getActor().getDisplayName(),
+                                audit.getReason(),
+                                audit.getOldStatus(),
+                                audit.getNewStatus(),
+                                audit.getOldResultStatus(),
+                                audit.getNewResultStatus(),
+                                audit.getMetadata(),
+                                audit.getRelatedMatch() != null
+                                        ? audit.getRelatedMatch().getId()
+                                        : null,
+                                audit.getCreatedAt()
+                        )
+                )
+                .toList();
+    }
+
+    private List<MatchOperationType> availableOperations(
+            CricketMatch match
+    ) {
+        MatchStatus status = match.getStatus();
+        MatchResultStatus resultStatus = match.getResultStatus();
+        List<MatchOperationType> operations = new ArrayList<>();
+
+        if (status == MatchStatus.PLANNED
+                || status == MatchStatus.SCHEDULED
+                || status == MatchStatus.READY
+                || status == MatchStatus.POSTPONED) {
+            operations.add(MatchOperationType.RESCHEDULE);
+        }
+
+        if (status == MatchStatus.PLANNED
+                || status == MatchStatus.SCHEDULED
+                || status == MatchStatus.READY
+                || status == MatchStatus.TOSS_COMPLETED) {
+            operations.add(MatchOperationType.POSTPONE);
+            operations.add(MatchOperationType.CANCEL);
+        }
+
+        if (status == MatchStatus.TOSS_COMPLETED) {
+            operations.add(MatchOperationType.RESET_TOSS);
+        }
+
+        if (status == MatchStatus.TOSS_COMPLETED
+                || status == MatchStatus.LIVE
+                || status == MatchStatus.INNINGS_BREAK) {
+            operations.add(MatchOperationType.SUSPEND);
+            operations.add(MatchOperationType.ABANDON);
+        }
+
+        if (status == MatchStatus.SUSPENDED) {
+            operations.add(MatchOperationType.RESUME);
+            operations.add(MatchOperationType.ABANDON);
+        }
+
+        if (status == MatchStatus.COMPLETED
+                && resultStatus == MatchResultStatus.OFFICIAL) {
+            operations.add(MatchOperationType.MARK_UNDER_REVIEW);
+            operations.add(MatchOperationType.ORDER_REMATCH);
+        }
+
+        if (status == MatchStatus.COMPLETED
+                && resultStatus == MatchResultStatus.UNDER_REVIEW) {
+            operations.add(MatchOperationType.RESTORE_OFFICIAL);
+            operations.add(MatchOperationType.VOID_RESULT);
+            operations.add(MatchOperationType.ORDER_REMATCH);
+        }
+
+        return operations;
+    }
+
+    private void attachTournamentSides(CricketMatch match) {
+
+        MatchSide sideA =
+                matchSideRepository.save(
+                        new MatchSide(
+                                match,
+                                MatchSideKey.A,
+                                match.getTeamA().getTeam().getName(),
+                                match.getTeamA()
+                        )
+                );
+
+        MatchSide sideB =
+                matchSideRepository.save(
+                        new MatchSide(
+                                match,
+                                MatchSideKey.B,
+                                match.getTeamB().getTeam().getName(),
+                                match.getTeamB()
+                        )
+                );
+
+        match.attachSides(sideA, sideB);
+    }
+
+    private String sideName(MatchSide side) {
+        return side != null
+                ? side.getDisplayName()
+                : "TBD";
     }
 
     private MatchReadiness readinessFor(
@@ -416,30 +801,32 @@ public class FixtureService {
 
         boolean playingXiSubmitted(
                 CricketMatch match,
-                Long tournamentTeamId
+                Long matchSideId
         ) {
 
             long submitted =
                     playingXiCounts.getOrDefault(
                             new TeamSubmissionKey(
                                     match.getId(),
-                                    tournamentTeamId
+                                    matchSideId
                             ),
                             0L
                     );
 
             Integer required =
-                    match.getTournamentEdition()
-                            .getPlayingXiSize();
+                    match.isTournament()
+                            ? match.requireTournamentEdition()
+                                    .getPlayingXiSize()
+                            : 2;
 
             return required != null
                     && required > 0
-                    && submitted == required;
+                    && submitted >= required;
         }
     }
 
     private record TeamSubmissionKey(
             Long matchId,
-            Long tournamentTeamId
+            Long matchSideId
     ) {}
 }

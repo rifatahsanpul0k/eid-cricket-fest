@@ -22,6 +22,12 @@ public interface CricketMatchRepository
                     "teamA.team",
                     "teamB",
                     "teamB.team",
+                    "teamASide",
+                    "teamASide.tournamentTeam",
+                    "teamASide.tournamentTeam.team",
+                    "teamBSide",
+                    "teamBSide.tournamentTeam",
+                    "teamBSide.tournamentTeam.team",
                     "venue"
             }
     )
@@ -57,10 +63,16 @@ public interface CricketMatchRepository
     @Query("""
         SELECT m
         FROM CricketMatch m
-        JOIN FETCH m.teamA a
-        JOIN FETCH a.team
-        JOIN FETCH m.teamB b
-        JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamA a
+        LEFT JOIN FETCH a.team
+        LEFT JOIN FETCH m.teamB b
+        LEFT JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH asd.tournamentTeam astt
+        LEFT JOIN FETCH astt.team
+        LEFT JOIN FETCH m.teamBSide bsd
+        LEFT JOIN FETCH bsd.tournamentTeam bstt
+        LEFT JOIN FETCH bstt.team
         LEFT JOIN FETCH m.venue
         WHERE m.tournamentEdition.id = :editionId
         ORDER BY m.matchNumber
@@ -77,8 +89,15 @@ public interface CricketMatchRepository
         JOIN FETCH a.team
         JOIN FETCH m.teamB b
         JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH asd.tournamentTeam astt
+        LEFT JOIN FETCH astt.team
+        LEFT JOIN FETCH m.teamBSide bsd
+        LEFT JOIN FETCH bsd.tournamentTeam bstt
+        LEFT JOIN FETCH bstt.team
         LEFT JOIN FETCH m.winnerTeam w
         LEFT JOIN FETCH w.team
+        LEFT JOIN FETCH m.winnerSide ws
         LEFT JOIN FETCH m.sourceMatchA
         LEFT JOIN FETCH m.sourceMatchB
         WHERE m.tournamentEdition.id = :editionId
@@ -93,12 +112,20 @@ public interface CricketMatchRepository
     @Query("""
         SELECT m
         FROM CricketMatch m
-        JOIN FETCH m.tournamentEdition
-        JOIN FETCH m.teamA a
-        JOIN FETCH a.team
-        JOIN FETCH m.teamB b
-        JOIN FETCH b.team
+        LEFT JOIN FETCH m.tournamentEdition
+        LEFT JOIN FETCH m.teamA a
+        LEFT JOIN FETCH a.team
+        LEFT JOIN FETCH m.teamB b
+        LEFT JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH asd.tournamentTeam astt
+        LEFT JOIN FETCH astt.team
+        LEFT JOIN FETCH m.teamBSide bsd
+        LEFT JOIN FETCH bsd.tournamentTeam bstt
+        LEFT JOIN FETCH bstt.team
         LEFT JOIN FETCH m.venue
+        LEFT JOIN FETCH m.rematchOfMatch
+        LEFT JOIN FETCH m.supersededByMatch
         WHERE m.id = :id
     """)
     Optional<CricketMatch> findDetailedById(
@@ -106,14 +133,36 @@ public interface CricketMatchRepository
     );
 
     @Query("""
+        SELECT m
+        FROM CricketMatch m
+        LEFT JOIN FETCH m.teamA a
+        LEFT JOIN FETCH a.team
+        LEFT JOIN FETCH m.teamB b
+        LEFT JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH m.teamBSide bsd
+        WHERE m.sourceMatchA.id = :sourceMatchId
+           OR m.sourceMatchB.id = :sourceMatchId
+    """)
+    List<CricketMatch> findDetailedDependents(
+            @Param("sourceMatchId") Long sourceMatchId
+    );
+
+    @Query("""
         SELECT DISTINCT m
         FROM MatchScorer ms
         JOIN ms.match m
-        JOIN FETCH m.tournamentEdition
-        JOIN FETCH m.teamA a
-        JOIN FETCH a.team
-        JOIN FETCH m.teamB b
-        JOIN FETCH b.team
+        LEFT JOIN FETCH m.tournamentEdition
+        LEFT JOIN FETCH m.teamA a
+        LEFT JOIN FETCH a.team
+        LEFT JOIN FETCH m.teamB b
+        LEFT JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH asd.tournamentTeam astt
+        LEFT JOIN FETCH astt.team
+        LEFT JOIN FETCH m.teamBSide bsd
+        LEFT JOIN FETCH bsd.tournamentTeam bstt
+        LEFT JOIN FETCH bstt.team
         LEFT JOIN FETCH m.venue
         WHERE ms.user.id = :userId
         ORDER BY m.scheduledAt NULLS LAST, m.matchNumber
@@ -130,9 +179,16 @@ public interface CricketMatchRepository
         JOIN FETCH a.team
         JOIN FETCH m.teamB b
         JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH asd.tournamentTeam astt
+        LEFT JOIN FETCH astt.team
+        LEFT JOIN FETCH m.teamBSide bsd
+        LEFT JOIN FETCH bsd.tournamentTeam bstt
+        LEFT JOIN FETCH bstt.team
         LEFT JOIN FETCH m.venue
         LEFT JOIN FETCH m.winnerTeam w
         LEFT JOIN FETCH w.team
+        LEFT JOIN FETCH m.winnerSide ws
         WHERE m.tournamentEdition.id = :editionId
           AND (
             m.teamA.id = :tournamentTeamId
@@ -152,8 +208,15 @@ public interface CricketMatchRepository
         JOIN FETCH a.team
         JOIN FETCH m.teamB b
         JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH asd.tournamentTeam astt
+        LEFT JOIN FETCH astt.team
+        LEFT JOIN FETCH m.teamBSide bsd
+        LEFT JOIN FETCH bsd.tournamentTeam bstt
+        LEFT JOIN FETCH bstt.team
         LEFT JOIN FETCH m.winnerTeam w
         LEFT JOIN FETCH w.team
+        LEFT JOIN FETCH m.winnerSide ws
         WHERE m.tournamentEdition.id = :editionId
           AND m.stage = com.eidcricketfest.match.entity.MatchStage.FINAL
     """)
@@ -174,9 +237,27 @@ public interface CricketMatchRepository
     WHERE m.tournamentEdition.id = :editionId
       AND m.stage = com.eidcricketfest.match.entity.MatchStage.LEAGUE
       AND m.resultType IS NOT NULL
+      AND m.status = com.eidcricketfest.match.entity.MatchStatus.COMPLETED
+      AND m.matchType = com.eidcricketfest.match.entity.MatchType.TOURNAMENT
+      AND m.resultStatus = com.eidcricketfest.match.entity.MatchResultStatus.OFFICIAL
     ORDER BY m.matchNumber
 """)
     List<CricketMatch> findLeagueResults(
             @Param("editionId") Long editionId
     );
+
+    @Query("""
+        SELECT m
+        FROM CricketMatch m
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH asd.tournamentTeam astt
+        LEFT JOIN FETCH astt.team
+        LEFT JOIN FETCH m.teamBSide bsd
+        LEFT JOIN FETCH bsd.tournamentTeam bstt
+        LEFT JOIN FETCH bstt.team
+        LEFT JOIN FETCH m.venue
+        WHERE m.matchType = com.eidcricketfest.match.entity.MatchType.FRIENDLY
+        ORDER BY m.scheduledAt NULLS LAST, m.createdAt DESC
+    """)
+    List<CricketMatch> findDetailedFriendlyMatches();
 }

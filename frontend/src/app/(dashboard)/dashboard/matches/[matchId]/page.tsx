@@ -17,7 +17,9 @@ import { getSession } from "@/lib/auth/session";
 import { matchStageLabel, matchStatusLabel } from "@/lib/cricket/match-labels";
 import {
   getDashboardMatch,
+  getDashboardMatchById,
   getDraftPicksForMatchAdmin,
+  getFriendlyPlayerOptions,
   getMatchSetupDetails,
   getScorers,
   getVenues,
@@ -60,22 +62,16 @@ export default async function DashboardMatchAdminPage({
     return <ForbiddenDashboard />;
   }
 
-  if (currentEdition.status !== "ready") {
-    return <Unavailable message={currentEdition.message} />;
-  }
-
   const id = Number(matchId);
 
   if (!Number.isFinite(id)) {
     notFound();
   }
 
-  const [matchResult, venues, scorers, teams, draft] = await Promise.all([
-    getDashboardMatch(currentEdition.edition.id, id),
+  const [matchResult, venues, scorers] = await Promise.all([
+    getDashboardMatchById(id),
     getVenues(),
     getScorers(),
-    getEditionTeams(currentEdition.edition.id),
-    getDraftState(currentEdition.edition.id),
   ]);
 
   if (!matchResult.ok) {
@@ -86,28 +82,91 @@ export default async function DashboardMatchAdminPage({
     return <Unavailable message={matchResult.error.detail ?? matchResult.error.title} />;
   }
 
+  const isFriendly = matchResult.data.matchType === "FRIENDLY";
+
+  if (!isFriendly && currentEdition.status !== "ready") {
+    return <Unavailable message={currentEdition.message} />;
+  }
+
+  const editionId =
+    !isFriendly && currentEdition.status === "ready"
+      ? currentEdition.edition.id
+      : undefined;
+  const [editionMatchResult, teams, draft] = editionId
+    ? await Promise.all([
+        getDashboardMatch(editionId, id),
+        getEditionTeams(editionId),
+        getDraftState(editionId),
+      ])
+    : [matchResult, undefined, undefined] as const;
+
+  if (!editionMatchResult.ok) {
+    if (editionMatchResult.status === 404) {
+      notFound();
+    }
+
+    return (
+      <Unavailable
+        message={editionMatchResult.error.detail ?? editionMatchResult.error.title}
+      />
+    );
+  }
+
   const persistedMatchId = matchResult.data.id ?? id;
-  const [draftPicks, setupDetails] = await Promise.all([
+  const [draftPicks, setupDetails, friendlyPlayers] = await Promise.all([
     draft?.ok && draft.data.id
       ? getDraftPicksForMatchAdmin(draft.data.id)
       : undefined,
     getMatchSetupDetails(persistedMatchId),
+    isFriendly ? getFriendlyPlayerOptions() : undefined,
   ]);
   const action = `/api/dashboard/matches/${persistedMatchId}`;
   const returnTo = `/dashboard/matches/${persistedMatchId}`;
-  const editionTeams = teams.ok ? teams.data : [];
-  const teamA = findEditionTeam(editionTeams, matchResult.data.teamA?.tournamentTeamId);
-  const teamB = findEditionTeam(editionTeams, matchResult.data.teamB?.tournamentTeamId);
+  const match = editionMatchResult.data;
+  const editionTeams = teams?.ok ? teams.data : [];
+  const teamA = findEditionTeam(editionTeams, match.teamA?.tournamentTeamId);
+  const teamB = findEditionTeam(editionTeams, match.teamB?.tournamentTeamId);
   const picks = draftPicks?.ok ? draftPicks.data : [];
-  const playingXiSize = currentEdition.edition.playingXiSize ?? 11;
-  const publicHref = publicMatchHref(matchResult.data);
+  const playingXiSize = isFriendly
+    ? Math.max(
+        setupDetails.ok
+          ? setupDetails.data.teamAPlayingXi?.playerIds?.length ?? 0
+          : 0,
+        setupDetails.ok
+          ? setupDetails.data.teamBPlayingXi?.playerIds?.length ?? 0
+          : 0,
+        2
+      )
+    : currentEdition.status === "ready"
+      ? currentEdition.edition.playingXiSize ?? 11
+      : 11;
+  const publicHref = publicMatchHref(match);
   const setup = setupDetails.ok ? setupDetails.data : undefined;
+  const playerNames =
+    friendlyPlayers?.ok
+      ? new Map(
+          friendlyPlayers.data.map((player) => [
+            player.playerId,
+            player.fullName ?? `Player ${player.playerId}`,
+          ])
+        )
+      : new Map<number | undefined, string>();
 
   return (
     <main className="flex-1">
       <DashboardHeader
-        description={`${currentEdition.edition.name} match setup`}
-        title={`Match #${matchResult.data.matchNumber ?? matchResult.data.id}`}
+        description={
+          isFriendly
+            ? "Standalone friendly match setup"
+            : currentEdition.status === "ready"
+              ? `${currentEdition.edition.name} match setup`
+              : "Match setup"
+        }
+        title={
+          isFriendly
+            ? "Friendly Match"
+            : `Match #${match.matchNumber ?? match.id}`
+        }
       />
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8">
         {query.error ? (
@@ -115,12 +174,18 @@ export default async function DashboardMatchAdminPage({
             {query.error}
           </p>
         ) : null}
-        <MatchSummary match={matchResult.data} publicHref={publicHref} />
-        <ReadinessPanel match={matchResult.data} />
+        <MatchSummary match={match} publicHref={publicHref} />
+        <ReadinessPanel match={match} />
+        <MatchOperationsPanel
+          action={action}
+          match={match}
+          returnTo={returnTo}
+          venues={venues.ok ? venues.data : []}
+        />
         <div className="grid gap-6 lg:grid-cols-2">
           <SchedulePanel
             action={action}
-            match={matchResult.data}
+            match={match}
             returnTo={returnTo}
             venues={venues.ok ? venues.data : []}
           />
@@ -149,33 +214,56 @@ export default async function DashboardMatchAdminPage({
             </p>
           ) : null}
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
-            <TeamXiPanel
-              action={action}
-              playingXiSize={playingXiSize}
-              returnTo={returnTo}
-              setup={setup?.teamAPlayingXi}
-              team={teamA}
-              candidates={rosterCandidatesForTeam({ picks, team: teamA })}
-            />
-            <TeamXiPanel
-              action={action}
-              playingXiSize={playingXiSize}
-              returnTo={returnTo}
-              setup={setup?.teamBPlayingXi}
-              team={teamB}
-              candidates={rosterCandidatesForTeam({ picks, team: teamB })}
-            />
+            {isFriendly ? (
+              <>
+                <FriendlyXiPanel
+                  playerNames={playerNames}
+                  playerIds={setup?.teamAPlayingXi?.playerIds ?? []}
+                  teamName={match.teamA?.name ?? "Team A"}
+                  wicketkeeperPlayerId={
+                    setup?.teamAPlayingXi?.wicketkeeperPlayerId
+                  }
+                />
+                <FriendlyXiPanel
+                  playerNames={playerNames}
+                  playerIds={setup?.teamBPlayingXi?.playerIds ?? []}
+                  teamName={match.teamB?.name ?? "Team B"}
+                  wicketkeeperPlayerId={
+                    setup?.teamBPlayingXi?.wicketkeeperPlayerId
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <TeamXiPanel
+                  action={action}
+                  playingXiSize={playingXiSize}
+                  returnTo={returnTo}
+                  setup={setup?.teamAPlayingXi}
+                  team={teamA}
+                  candidates={rosterCandidatesForTeam({ picks, team: teamA })}
+                />
+                <TeamXiPanel
+                  action={action}
+                  playingXiSize={playingXiSize}
+                  returnTo={returnTo}
+                  setup={setup?.teamBPlayingXi}
+                  team={teamB}
+                  candidates={rosterCandidatesForTeam({ picks, team: teamB })}
+                />
+              </>
+            )}
           </div>
         </section>
         <div className="grid gap-6 lg:grid-cols-2">
           <TossPanel
             action={action}
-            match={matchResult.data}
+            match={match}
             returnTo={returnTo}
           />
           <LifecyclePanel
             action={action}
-            match={matchResult.data}
+            match={match}
             returnTo={returnTo}
           />
         </div>
@@ -261,6 +349,236 @@ function ReadinessItem({ done, label }: { done: boolean; label: string }) {
       </p>
     </div>
   );
+}
+
+function MatchOperationsPanel({
+  action,
+  match,
+  returnTo,
+  venues,
+}: {
+  action: string;
+  match: MatchResponse;
+  returnTo: string;
+  venues: Venue[];
+}) {
+  const operations = match.availableOperations ?? [];
+  const history = match.operationHistory ?? [];
+
+  return (
+    <section className="rounded-sm border border-white/10 bg-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-2xl font-bold uppercase tracking-normal">
+            Match Operations
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Available actions come from the authenticated backend read model.
+          </p>
+        </div>
+        {match.resultStatus ? (
+          <Badge variant="outline">Result {resultStatusLabel(match.resultStatus)}</Badge>
+        ) : null}
+      </div>
+
+      {operations.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          No administrative operations are currently available for this match.
+        </p>
+      ) : (
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {operations.map((operation) => (
+            <OperationForm
+              action={action}
+              key={operation}
+              match={match}
+              operation={operation}
+              returnTo={returnTo}
+              venues={venues}
+            />
+          ))}
+        </div>
+      )}
+
+      {history.length > 0 ? (
+        <div className="mt-6">
+          <h3 className="font-heading text-lg font-bold uppercase tracking-normal">
+            Operation History
+          </h3>
+          <div className="mt-3 divide-y divide-white/10 rounded-sm border border-white/10">
+            {history.map((item) => (
+              <div className="grid gap-2 p-3 text-sm" key={item.id}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium">
+                    {operationLabel(item.operationType)}
+                  </span>
+                  <span className="font-mono text-xs uppercase text-muted-foreground">
+                    {formatBangladeshDateTime(item.createdAt)}
+                  </span>
+                </div>
+                <p className="text-muted-foreground">{item.reason}</p>
+                <p className="text-xs text-muted-foreground">
+                  {item.actorName ?? "System"} changed{" "}
+                  {matchStatusLabel(item.oldStatus)} to{" "}
+                  {matchStatusLabel(item.newStatus)}
+                  {item.relatedMatchId
+                    ? `, related match #${item.relatedMatchId}`
+                    : ""}
+                  .
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function OperationForm({
+  action,
+  match,
+  operation,
+  returnTo,
+  venues,
+}: {
+  action: string;
+  match: MatchResponse;
+  operation: NonNullable<MatchResponse["availableOperations"]>[number];
+  returnTo: string;
+  venues: Venue[];
+}) {
+  const formAction =
+    operation === "RESCHEDULE"
+      ? "operation-reschedule"
+      : operation === "ORDER_REMATCH"
+        ? "operation-rematch"
+        : `operation-${operation.toLowerCase().replaceAll("_", "-")}`;
+  const needsSchedule =
+    operation === "RESCHEDULE" || operation === "ORDER_REMATCH";
+
+  return (
+    <form action={action} className="grid gap-3 rounded-sm border border-white/10 bg-background p-4" method="post">
+      <input name="action" type="hidden" value={formAction} />
+      <input name="returnTo" type="hidden" value={returnTo} />
+      <div>
+        <h3 className="font-heading text-lg font-bold uppercase tracking-normal">
+          {operationLabel(operation)}
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {operationDescription(operation)}
+        </p>
+      </div>
+      {needsSchedule ? (
+        <>
+          <label className="grid gap-2 text-sm">
+            Time
+            <input
+              className="min-h-11 rounded-sm border border-white/10 bg-card px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              defaultValue={
+                operation === "RESCHEDULE"
+                  ? toDhakaDateTimeLocal(match.scheduledAt)
+                  : ""
+              }
+              name="scheduledAt"
+              required={operation === "RESCHEDULE"}
+              type="datetime-local"
+            />
+          </label>
+          <label className="grid gap-2 text-sm">
+            Venue
+            <select
+              className="min-h-11 rounded-sm border border-white/10 bg-card px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              defaultValue={operation === "RESCHEDULE" ? match.venue?.id ?? "" : ""}
+              disabled={venues.length === 0}
+              name="venueId"
+              required={operation === "RESCHEDULE"}
+            >
+              <option value="">Select venue</option>
+              {venues.map((venue) => (
+                <option key={venue.id} value={venue.id}>
+                  {venue.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm">
+            Overs
+            <input
+              className="min-h-11 rounded-sm border border-white/10 bg-card px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              defaultValue={
+                operation === "RESCHEDULE" ? match.oversPerInnings ?? "" : ""
+              }
+              min={1}
+              name="oversPerInnings"
+              type="number"
+            />
+          </label>
+        </>
+      ) : null}
+      <label className="grid gap-2 text-sm">
+        Reason
+        <textarea
+          className="min-h-24 rounded-sm border border-white/10 bg-card px-3 py-2 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          name="reason"
+          required
+        />
+      </label>
+      <ReviewSubmitButton
+        variant={
+          operation === "CANCEL" ||
+          operation === "ABANDON" ||
+          operation === "VOID_RESULT"
+            ? "destructive"
+            : "outline"
+        }
+      >
+        {operationLabel(operation)}
+      </ReviewSubmitButton>
+    </form>
+  );
+}
+
+function operationLabel(
+  operation?: NonNullable<MatchResponse["availableOperations"]>[number] | string
+) {
+  if (operation === "RESET_TOSS") return "Reset Toss";
+  if (operation === "MARK_UNDER_REVIEW") return "Mark Under Review";
+  if (operation === "RESTORE_OFFICIAL") return "Restore Official Result";
+  if (operation === "VOID_RESULT") return "Void Result";
+  if (operation === "ORDER_REMATCH") return "Order Rematch";
+
+  return operation
+    ? operation
+        .toLowerCase()
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+    : "Operation";
+}
+
+function operationDescription(
+  operation: NonNullable<MatchResponse["availableOperations"]>[number]
+) {
+  if (operation === "RESCHEDULE") return "Change time, venue, or planned overs.";
+  if (operation === "POSTPONE") return "Pause this fixture before it starts.";
+  if (operation === "SUSPEND") return "Pause an already started match.";
+  if (operation === "RESUME") return "Restore the match to its suspended state.";
+  if (operation === "ABANDON") return "End a started match as no result.";
+  if (operation === "CANCEL") return "Cancel before meaningful play starts.";
+  if (operation === "RESET_TOSS") return "Delete the saved toss and return to ready.";
+  if (operation === "MARK_UNDER_REVIEW") return "Hold the official result for review.";
+  if (operation === "RESTORE_OFFICIAL") return "Make the reviewed result official again.";
+  if (operation === "VOID_RESULT") return "Void the current result from standings and stats.";
+  return "Create a fresh fixture linked to this completed match.";
+}
+
+function resultStatusLabel(status: NonNullable<MatchResponse["resultStatus"]>) {
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function SchedulePanel({
@@ -420,6 +738,44 @@ function TeamXiPanel({
   );
 }
 
+function FriendlyXiPanel({
+  playerIds,
+  playerNames,
+  teamName,
+  wicketkeeperPlayerId,
+}: {
+  playerIds: number[];
+  playerNames: Map<number | undefined, string>;
+  teamName: string;
+  wicketkeeperPlayerId?: number;
+}) {
+  return (
+    <div className="rounded-sm border border-white/10 bg-background p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-heading text-lg font-bold uppercase tracking-normal">
+          {teamName}
+        </h3>
+        <span className="font-mono text-xs uppercase text-muted-foreground">
+          {playerIds.length} selected
+        </span>
+      </div>
+      <div className="mt-4 grid gap-2">
+        {playerIds.map((playerId) => (
+          <div
+            className="flex min-h-10 items-center justify-between gap-3 rounded-sm border border-white/10 px-3 text-sm"
+            key={playerId}
+          >
+            <span>{playerNames.get(playerId) ?? `Player ${playerId}`}</span>
+            {wicketkeeperPlayerId === playerId ? (
+              <Badge variant="outline">Wicketkeeper</Badge>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TossPanel({
   action,
   match,
@@ -431,8 +787,8 @@ function TossPanel({
 }) {
   const disabled =
     !canRecordToss(match.status) ||
-    !match.teamA?.tournamentTeamId ||
-    !match.teamB?.tournamentTeamId;
+    (!match.teamA?.tournamentTeamId && !match.teamA?.matchSideId) ||
+    (!match.teamB?.tournamentTeamId && !match.teamB?.matchSideId);
 
   if (disabled) {
     return (
@@ -460,14 +816,30 @@ function TossPanel({
           Winner
           <select
             className="min-h-11 rounded-sm border border-white/10 bg-background px-3 text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            name="winnerTournamentTeamId"
+            name={
+              match.matchType === "FRIENDLY"
+                ? "winnerMatchSideId"
+                : "winnerTournamentTeamId"
+            }
             required
           >
             <option value="">Select winner</option>
-            <option value={match.teamA?.tournamentTeamId}>
+            <option
+              value={
+                match.matchType === "FRIENDLY"
+                  ? match.teamA?.matchSideId
+                  : match.teamA?.tournamentTeamId
+              }
+            >
               {match.teamA?.name ?? "Team A"}
             </option>
-            <option value={match.teamB?.tournamentTeamId}>
+            <option
+              value={
+                match.matchType === "FRIENDLY"
+                  ? match.teamB?.matchSideId
+                  : match.teamB?.tournamentTeamId
+              }
+            >
               {match.teamB?.name ?? "Team B"}
             </option>
           </select>

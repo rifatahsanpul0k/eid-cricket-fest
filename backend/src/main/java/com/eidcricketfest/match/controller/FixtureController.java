@@ -89,6 +89,38 @@ public class FixtureController {
         );
     }
 
+    @Operation(summary = "Create friendly match")
+    @PostMapping("/friendly-matches")
+    @ResponseStatus(HttpStatus.CREATED)
+    @SecurityRequirement(name = "bearerAuth")
+    public MatchResponse createFriendlyMatch(
+            @Valid @RequestBody CreateFriendlyMatchRequest request
+    ) {
+        return fixtureService.createFriendlyMatch(request);
+    }
+
+    @Operation(summary = "List friendly match player options")
+    @GetMapping("/friendly-matches/player-options")
+    @SecurityRequirement(name = "bearerAuth")
+    public List<FriendlyPlayerOptionResponse> friendlyPlayerOptions() {
+        return fixtureService.friendlyPlayerOptions();
+    }
+
+    @Operation(summary = "List friendly matches")
+    @GetMapping("/friendly-matches")
+    public List<MatchResponse> friendlyMatches() {
+        return fixtureService.getFriendlyMatches();
+    }
+
+    @Operation(summary = "Get match")
+    @GetMapping("/matches/{matchId}")
+    @SecurityRequirement(name = "bearerAuth")
+    public MatchResponse getMatch(
+            @PathVariable Long matchId
+    ) {
+        return fixtureService.getMatch(matchId);
+    }
+
     @Operation(summary = "Search matches")
     @GetMapping(
             "/tournament-editions/{editionId}/matches"

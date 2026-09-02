@@ -40,12 +40,20 @@ export type TournamentResponse = components["schemas"]["TournamentResponse"];
 export type MatchResponse = components["schemas"]["MatchResponse"];
 export type MatchSetupDetailsResponse =
   components["schemas"]["MatchSetupDetailsResponse"];
+export type CreateFriendlyMatchRequest =
+  components["schemas"]["CreateFriendlyMatchRequest"];
+export type FriendlyPlayerOptionResponse =
+  components["schemas"]["FriendlyPlayerOptionResponse"];
 export type PageResponseMatchResponse =
   components["schemas"]["PageResponseMatchResponse"];
 export type Venue = components["schemas"]["Venue"];
 export type CreateVenueRequest = components["schemas"]["CreateVenueRequest"];
 export type ScheduleMatchRequest =
   components["schemas"]["ScheduleMatchRequest"];
+export type RescheduleMatchOperationRequest =
+  components["schemas"]["RescheduleMatchOperationRequest"];
+export type OrderRematchRequest =
+  components["schemas"]["OrderRematchRequest"];
 export type AssignScorerRequest =
   components["schemas"]["AssignScorerRequest"];
 export type SubmitPlayingXiRequest =

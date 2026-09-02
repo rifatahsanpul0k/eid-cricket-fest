@@ -1,14 +1,18 @@
 import type {
   AssignScorerRequest,
+  CreateFriendlyMatchRequest,
   CreateVenueRequest,
   DraftPickResponse,
+  FriendlyPlayerOptionResponse,
   KnockoutBracketResponse,
   MatchResponse,
   MatchSetupDetailsResponse,
   NoResultRequest,
+  OrderRematchRequest,
   PageResponseMatchResponse,
   RecordTossRequest,
   ResolveKnockoutMatchRequest,
+  RescheduleMatchOperationRequest,
   ScheduleMatchRequest,
   SubmitPlayingXiRequest,
   UserOptionResponse,
@@ -60,6 +64,34 @@ export async function getDashboardMatch(editionId: number, matchId: number) {
       };
 }
 
+export async function getDashboardMatchById(matchId: number) {
+  return backendRequest<MatchResponse>(
+    `/api/v1/matches/${matchId}`,
+    {},
+    { authenticated: true }
+  );
+}
+
+export async function getFriendlyMatches() {
+  return backendRequest<MatchResponse[]>("/api/v1/friendly-matches");
+}
+
+export async function getFriendlyPlayerOptions() {
+  return backendRequest<FriendlyPlayerOptionResponse[]>(
+    "/api/v1/friendly-matches/player-options",
+    {},
+    { authenticated: true }
+  );
+}
+
+export async function createFriendlyMatch(body: CreateFriendlyMatchRequest) {
+  return backendRequest<MatchResponse>(
+    "/api/v1/friendly-matches",
+    jsonInit("POST", body),
+    { authenticated: true }
+  );
+}
+
 export async function getMatchSetupDetails(matchId: number) {
   return backendRequest<MatchSetupDetailsResponse>(
     `/api/v1/matches/${matchId}/setup`,
@@ -100,6 +132,49 @@ export async function scheduleMatch(matchId: number, body: ScheduleMatchRequest)
   return backendRequest<MatchResponse>(
     `/api/v1/matches/${matchId}/schedule`,
     jsonInit("PATCH", body),
+    { authenticated: true }
+  );
+}
+
+export async function rescheduleMatchOperation(
+  matchId: number,
+  body: RescheduleMatchOperationRequest
+) {
+  return backendRequest<MatchResponse>(
+    `/api/v1/matches/${matchId}/operations/reschedule`,
+    jsonInit("PATCH", body),
+    { authenticated: true }
+  );
+}
+
+export async function reasonMatchOperation(
+  matchId: number,
+  operation:
+    | "postpone"
+    | "suspend"
+    | "resume"
+    | "abandon"
+    | "cancel"
+    | "reset-toss"
+    | "review"
+    | "restore-result"
+    | "void-result",
+  reason: string
+) {
+  return backendRequest<MatchResponse>(
+    `/api/v1/matches/${matchId}/operations/${operation}`,
+    jsonInit("POST", { reason }),
+    { authenticated: true }
+  );
+}
+
+export async function orderRematch(
+  matchId: number,
+  body: OrderRematchRequest
+) {
+  return backendRequest<MatchResponse>(
+    `/api/v1/matches/${matchId}/operations/rematch`,
+    jsonInit("POST", body),
     { authenticated: true }
   );
 }

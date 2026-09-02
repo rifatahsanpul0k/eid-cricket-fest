@@ -7,6 +7,7 @@ public enum MatchStatus {
     TOSS_COMPLETED,
     LIVE,
     INNINGS_BREAK,
+    SUSPENDED,
     COMPLETED,
     POSTPONED,
     ABANDONED,

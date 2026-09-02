@@ -208,14 +208,14 @@ public class MyCricketService {
                 playingXiRepository.countSubmittedByMatchAndTeam(matchIds)) {
 
             Long matchId = (Long) row[0];
-            Long tournamentTeamId = (Long) row[1];
+            Long matchSideId = (Long) row[1];
             Long count = (Long) row[2];
 
             counts.computeIfAbsent(
                             matchId,
                             ignored -> new HashMap<>()
                     )
-                    .put(tournamentTeamId, count);
+                    .put(matchSideId, count);
         }
 
         return counts;
@@ -233,10 +233,18 @@ public class MyCricketService {
                         ? match.getTeamB()
                         : match.getTeamA();
 
+        Long myMatchSideId =
+                match.sideForTournamentTeam(
+                                match.getTeamA().getId().equals(myTournamentTeamId)
+                                        ? match.getTeamA()
+                                        : match.getTeamB()
+                        )
+                        .getId();
+
         long submitted =
                 submittedByMatchAndTeam
                         .getOrDefault(match.getId(), Map.of())
-                        .getOrDefault(myTournamentTeamId, 0L);
+                        .getOrDefault(myMatchSideId, 0L);
 
         boolean myTeamPlayingXiSubmitted =
                 submitted >= match.getTournamentEdition().getPlayingXiSize();

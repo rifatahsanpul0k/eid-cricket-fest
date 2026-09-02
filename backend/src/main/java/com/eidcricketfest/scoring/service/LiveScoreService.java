@@ -73,13 +73,11 @@ public class LiveScoreService {
                 match.getMatchNumber(),
                 match.getStatus(),
 
-                match.getTeamA()
-                        .getTeam()
-                        .getName(),
+                match.getTeamASide()
+                        .getDisplayName(),
 
-                match.getTeamB()
-                        .getTeam()
-                        .getName(),
+                match.getTeamBSide()
+                        .getDisplayName(),
 
                 inningsInfo,
                 recent
@@ -149,13 +147,11 @@ public class LiveScoreService {
                 innings.getInningsNumber(),
                 innings.getScoreRevision(),
 
-                innings.getBattingTeam()
-                        .getTeam()
-                        .getName(),
+                innings.getBattingSide()
+                        .getDisplayName(),
 
-                innings.getBowlingTeam()
-                        .getTeam()
-                        .getName(),
+                innings.getBowlingSide()
+                        .getDisplayName(),
 
                 innings.getTotalRuns(),
                 innings.getWickets(),
@@ -183,12 +179,10 @@ public class LiveScoreService {
         }
 
         return new LiveMatchResponse.PlayerInfo(
-                xi.getRegistration()
-                        .getPlayer()
+                xi.getPlayer()
                         .getId(),
 
-                xi.getRegistration()
-                        .getPlayer()
+                xi.getPlayer()
                         .getFullName()
         );
     }

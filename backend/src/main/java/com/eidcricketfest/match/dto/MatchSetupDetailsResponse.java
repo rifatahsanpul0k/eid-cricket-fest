@@ -16,8 +16,11 @@ public record MatchSetupDetailsResponse(
     ) {}
 
     public record TeamPlayingXi(
+            Long matchSideId,
             Long tournamentTeamId,
             List<Long> registrationIds,
-            Long wicketkeeperRegistrationId
+            List<Long> playerIds,
+            Long wicketkeeperRegistrationId,
+            Long wicketkeeperPlayerId
     ) {}
 }

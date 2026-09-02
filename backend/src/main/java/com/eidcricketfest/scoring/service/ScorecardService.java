@@ -174,9 +174,8 @@ public class ScorecardService {
         return new ScorecardResponse.InningsScorecard(
                 innings.getInningsNumber(),
 
-                innings.getBattingTeam()
-                        .getTeam()
-                        .getName(),
+                innings.getBattingSide()
+                        .getDisplayName(),
 
                 innings.getTotalRuns(),
                 innings.getWickets(),
@@ -210,12 +209,10 @@ public class ScorecardService {
                         );
 
         return new ScorecardResponse.BattingRow(
-                a.player.getRegistration()
-                        .getPlayer()
+                a.player.getPlayer()
                         .getId(),
 
-                a.player.getRegistration()
-                        .getPlayer()
+                a.player.getPlayer()
                         .getFullName(),
 
                 a.runs,
@@ -243,12 +240,10 @@ public class ScorecardService {
                         );
 
         return new ScorecardResponse.BowlingRow(
-                a.player.getRegistration()
-                        .getPlayer()
+                a.player.getPlayer()
                         .getId(),
 
-                a.player.getRegistration()
-                        .getPlayer()
+                a.player.getPlayer()
                         .getFullName(),
 
                 overs(a.legalBalls),
@@ -274,7 +269,6 @@ public class ScorecardService {
                             ? "caught"
                             : "caught by "
                             + wicket.getFielder()
-                                    .getRegistration()
                                     .getPlayer()
                                     .getFullName();
 

@@ -2,6 +2,7 @@ package com.eidcricketfest.scoring.entity;
 
 import com.eidcricketfest.common.entity.BaseEntity;
 import com.eidcricketfest.match.entity.CricketMatch;
+import com.eidcricketfest.match.entity.MatchSide;
 import com.eidcricketfest.match.entity.PlayingXiEntry;
 import com.eidcricketfest.team.entity.TournamentTeam;
 import com.eidcricketfest.tournament.entity.TournamentEdition;
@@ -13,24 +14,32 @@ import java.time.Instant;
 @Table(name = "innings")
 public class Innings extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "match_id")
     private CricketMatch match;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tournament_edition_id")
     private TournamentEdition tournamentEdition;
 
     @Column(name = "innings_number", nullable = false)
     private Short inningsNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "batting_team_id")
     private TournamentTeam battingTeam;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "bowling_team_id")
     private TournamentTeam bowlingTeam;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "batting_match_side_id")
+    private MatchSide battingSide;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "bowling_match_side_id")
+    private MatchSide bowlingSide;
 
     @Column(name = "target_runs")
     private Integer targetRuns;
@@ -92,8 +101,8 @@ public class Innings extends BaseEntity {
     public Innings(
             CricketMatch match,
             short inningsNumber,
-            TournamentTeam battingTeam,
-            TournamentTeam bowlingTeam,
+            MatchSide battingSide,
+            MatchSide bowlingSide,
             Integer targetRuns
     ) {
         this.match = match;
@@ -101,8 +110,10 @@ public class Innings extends BaseEntity {
                 match.getTournamentEdition();
 
         this.inningsNumber = inningsNumber;
-        this.battingTeam = battingTeam;
-        this.bowlingTeam = bowlingTeam;
+        this.battingSide = battingSide;
+        this.bowlingSide = bowlingSide;
+        this.battingTeam = battingSide.getTournamentTeam();
+        this.bowlingTeam = bowlingSide.getTournamentTeam();
         this.targetRuns = targetRuns;
 
         this.status = InningsStatus.IN_PROGRESS;
@@ -231,6 +242,10 @@ public class Innings extends BaseEntity {
     public TournamentTeam getBattingTeam() { return battingTeam; }
 
     public TournamentTeam getBowlingTeam() { return bowlingTeam; }
+
+    public MatchSide getBattingSide() { return battingSide; }
+
+    public MatchSide getBowlingSide() { return bowlingSide; }
 
     public Integer getTargetRuns() { return targetRuns; }
 

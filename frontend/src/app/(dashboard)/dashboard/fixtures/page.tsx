@@ -342,7 +342,7 @@ function FixtureFilter({
   );
 }
 
-function FixtureTable({ matches }: { matches: { id?: number; matchNumber?: number; stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER"; status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED"; teamA?: { name?: string }; teamB?: { name?: string }; venue?: { name?: string }; scheduledAt?: string }[] }) {
+function FixtureTable({ matches }: { matches: { id?: number; matchNumber?: number; stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER"; status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED"; teamA?: { name?: string }; teamB?: { name?: string }; venue?: { name?: string }; scheduledAt?: string }[] }) {
   if (matches.length === 0) {
     return (
       <div className="rounded-sm border border-white/10 bg-card p-5 text-sm text-muted-foreground">

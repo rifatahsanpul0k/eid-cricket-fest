@@ -5,8 +5,9 @@ import jakarta.validation.constraints.NotNull;
 
 public record RecordTossRequest(
 
-        @NotNull
         Long winnerTournamentTeamId,
+
+        Long winnerMatchSideId,
 
         @NotNull
         TossDecision decision

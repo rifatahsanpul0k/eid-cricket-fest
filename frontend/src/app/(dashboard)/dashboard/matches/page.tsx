@@ -22,7 +22,10 @@ import {
   parseMatchAdminSearch,
   publicMatchHref,
 } from "@/lib/dashboard/match-admin-state";
-import { searchDashboardMatches } from "@/lib/dashboard/match-admin-api";
+import {
+  getFriendlyMatches,
+  searchDashboardMatches,
+} from "@/lib/dashboard/match-admin-api";
 import { getEditionTeams } from "@/lib/dashboard/team-draft-api";
 import { matchStageLabel, matchStatusLabel } from "@/lib/cricket/match-labels";
 import { getCurrentEditionData } from "@/lib/tournament/current-edition";
@@ -60,19 +63,25 @@ export default async function DashboardMatchesPage({
     return <ForbiddenDashboard />;
   }
 
-  if (currentEdition.status !== "ready") {
-    return <Unavailable message={currentEdition.message} />;
-  }
-
-  const [matches, teams] = await Promise.all([
-    searchDashboardMatches(currentEdition.edition.id, search),
-    getEditionTeams(currentEdition.edition.id),
-  ]);
+  const friendlyMatches = await getFriendlyMatches();
+  const tournamentData =
+    currentEdition.status === "ready"
+      ? await Promise.all([
+          searchDashboardMatches(currentEdition.edition.id, search),
+          getEditionTeams(currentEdition.edition.id),
+        ])
+      : undefined;
+  const matches = tournamentData?.[0];
+  const teams = tournamentData?.[1];
 
   return (
     <main className="flex-1">
       <DashboardHeader
-        description={`${currentEdition.edition.name} match setup and operations`}
+        description={
+          currentEdition.status === "ready"
+            ? `${currentEdition.edition.name} match setup and operations`
+            : "Standalone match setup and tournament operations"
+        }
         title="Matches"
       />
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8">
@@ -81,8 +90,33 @@ export default async function DashboardMatchesPage({
             {params.error}
           </p>
         ) : null}
-        <MatchFilter search={search} teams={teams.ok ? teams.data : []} />
-        {matches.ok ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-heading text-2xl font-bold uppercase tracking-normal">
+            Friendly Matches
+          </h2>
+          <Link
+            className={cn(buttonVariants(), "h-9")}
+            href="/dashboard/matches/friendly/new"
+          >
+            Create match
+          </Link>
+        </div>
+        {friendlyMatches.ok ? (
+          <MatchTable matches={friendlyMatches.data} />
+        ) : (
+          <Unavailable
+            message={friendlyMatches.error.detail ?? friendlyMatches.error.title}
+          />
+        )}
+        <h2 className="font-heading text-2xl font-bold uppercase tracking-normal">
+          Tournament Matches
+        </h2>
+        {currentEdition.status !== "ready" ? (
+          <Unavailable message={currentEdition.message} />
+        ) : (
+          <MatchFilter search={search} teams={teams?.ok ? teams.data : []} />
+        )}
+        {matches?.ok ? (
           <>
             <MatchTable matches={matches.data.content ?? []} />
             <PublicPagination
@@ -101,9 +135,9 @@ export default async function DashboardMatchesPage({
               totalPages={matches.data.totalPages}
             />
           </>
-        ) : (
+        ) : currentEdition.status === "ready" && matches ? (
           <Unavailable message={matches.error.detail ?? matches.error.title} />
-        )}
+        ) : null}
       </section>
     </main>
   );
@@ -217,7 +251,9 @@ function MatchTable({ matches }: { matches: MatchResponse[] }) {
           {matches.map((match) => (
             <TableRow key={match.id}>
               <TableCell>
-                #{match.matchNumber} · {matchStageLabel(match.stage)}
+                {match.matchType === "FRIENDLY"
+                  ? "Friendly"
+                  : `#${match.matchNumber} · ${matchStageLabel(match.stage)}`}
               </TableCell>
               <TableCell>
                 {match.teamA?.name ?? "TBD"} vs{" "}

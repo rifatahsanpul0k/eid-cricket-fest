@@ -10,7 +10,6 @@ import com.eidcricketfest.scoring.dto.*;
 import com.eidcricketfest.scoring.entity.*;
 import com.eidcricketfest.scoring.event.MatchScoreChangedEvent;
 import com.eidcricketfest.scoring.repository.*;
-import com.eidcricketfest.team.entity.TournamentTeam;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -94,8 +93,8 @@ public class ScoringService {
 
         short inningsNumber;
 
-        TournamentTeam batting;
-        TournamentTeam bowling;
+        MatchSide batting;
+        MatchSide bowling;
 
         Integer target = null;
 
@@ -111,14 +110,14 @@ public class ScoringService {
 
             inningsNumber = 1;
 
-            TournamentTeam tossWinner =
-                    toss.getWinnerTeam();
+            MatchSide tossWinner =
+                    toss.getWinnerSide();
 
-            TournamentTeam other =
+            MatchSide other =
                     tossWinner.getId()
-                            .equals(match.getTeamA().getId())
-                            ? match.getTeamB()
-                            : match.getTeamA();
+                            .equals(match.getTeamASide().getId())
+                            ? match.getTeamBSide()
+                            : match.getTeamASide();
 
             if (toss.getDecision() == TossDecision.BAT) {
                 batting = tossWinner;
@@ -159,8 +158,8 @@ public class ScoringService {
 
             inningsNumber = 2;
 
-            batting = first.getBowlingTeam();
-            bowling = first.getBattingTeam();
+            batting = first.getBowlingSide();
+            bowling = first.getBattingSide();
 
             target = first.getTotalRuns() + 1;
         }
@@ -246,7 +245,7 @@ public class ScoringService {
 
         validateBatters(
                 innings.getMatch().getId(),
-                innings.getBattingTeam(),
+                innings.getBattingSide(),
                 striker,
                 nonStriker
         );
@@ -305,7 +304,7 @@ public class ScoringService {
 
         validateBowler(
                 innings.getMatch().getId(),
-                innings.getBowlingTeam(),
+                innings.getBowlingSide(),
                 bowler
         );
 
@@ -1077,7 +1076,7 @@ public class ScoringService {
 
             validateBowler(
                     innings.getMatch().getId(),
-                    innings.getBowlingTeam(),
+                    innings.getBowlingSide(),
                     fielder
             );
         }
@@ -1169,9 +1168,17 @@ public class ScoringService {
                 match.getOversPerInnings() * 6;
 
         int maxWickets =
-                match.getTournamentEdition()
-                        .getPlayingXiSize()
-                        - 1;
+                Math.toIntExact(
+                        Math.max(
+                                1,
+                                playingXiRepository
+                                        .countByMatch_IdAndMatchSide_Id(
+                                                match.getId(),
+                                                innings.getBattingSide().getId()
+                                        )
+                                        - 1
+                        )
+                );
 
         if (innings.getLegalBalls() >= maxBalls) {
             return true;
@@ -1212,21 +1219,28 @@ public class ScoringService {
                 > first.getTotalRuns()) {
 
             int maxWickets =
-                    match.getTournamentEdition()
-                            .getPlayingXiSize()
-                            - 1;
+                    Math.toIntExact(
+                            Math.max(
+                                    1,
+                                    playingXiRepository
+                                            .countByMatch_IdAndMatchSide_Id(
+                                                    match.getId(),
+                                                    second.getBattingSide().getId()
+                                            )
+                                            - 1
+                            )
+                    );
 
             int remaining =
                     maxWickets
                             - second.getWickets();
 
             match.complete(
-                    second.getBattingTeam(),
+                    second.getBattingSide(),
                     MatchResultType.WICKETS,
                     remaining,
-                    second.getBattingTeam()
-                            .getTeam()
-                            .getName()
+                    second.getBattingSide()
+                            .getDisplayName()
                             + " won by "
                             + remaining
                             + " wickets"
@@ -1242,12 +1256,11 @@ public class ScoringService {
                             - second.getTotalRuns();
 
             match.complete(
-                    first.getBattingTeam(),
+                    first.getBattingSide(),
                     MatchResultType.RUNS,
                     margin,
-                    first.getBattingTeam()
-                            .getTeam()
-                            .getName()
+                    first.getBattingSide()
+                            .getDisplayName()
                             + " won by "
                             + margin
                             + " runs"
@@ -1256,7 +1269,7 @@ public class ScoringService {
         } else {
 
             match.complete(
-                    null,
+                    (MatchSide) null,
                     MatchResultType.TIE,
                     0,
                     "Match tied"
@@ -1266,8 +1279,10 @@ public class ScoringService {
         eventPublisher.publishEvent(
                 new MatchCompletedEvent(
                         match.getId(),
-                        match.getTournamentEdition()
-                                .getId(),
+                        match.getTournamentEdition() != null
+                                ? match.getTournamentEdition().getId()
+                                : null,
+                        match.getMatchType(),
                         match.getStage()
                 )
         );
@@ -1297,7 +1312,7 @@ public class ScoringService {
 
     private void validateBatters(
             Long matchId,
-            TournamentTeam battingTeam,
+            MatchSide battingSide,
             PlayingXiEntry striker,
             PlayingXiEntry nonStriker
     ) {
@@ -1323,13 +1338,13 @@ public class ScoringService {
             );
         }
 
-        if (!striker.getTournamentTeam()
+        if (!striker.getMatchSide()
                 .getId()
-                .equals(battingTeam.getId())
+                .equals(battingSide.getId())
                 ||
-                !nonStriker.getTournamentTeam()
+                !nonStriker.getMatchSide()
                         .getId()
-                        .equals(battingTeam.getId())) {
+                        .equals(battingSide.getId())) {
 
             throw new ConflictException(
                     "Batters must belong to the batting team"
@@ -1339,7 +1354,7 @@ public class ScoringService {
 
     private void validateBowler(
             Long matchId,
-            TournamentTeam bowlingTeam,
+            MatchSide bowlingSide,
             PlayingXiEntry player
     ) {
 
@@ -1347,9 +1362,9 @@ public class ScoringService {
                 .getId()
                 .equals(matchId)
                 ||
-                !player.getTournamentTeam()
+                !player.getMatchSide()
                         .getId()
-                        .equals(bowlingTeam.getId())) {
+                        .equals(bowlingSide.getId())) {
 
             throw new ConflictException(
                     "Player must belong to the bowling team"
@@ -1457,13 +1472,11 @@ public class ScoringService {
                 innings.getInningsNumber(),
                 innings.getScoreRevision(),
 
-                innings.getBattingTeam()
-                        .getTeam()
-                        .getName(),
+                innings.getBattingSide()
+                        .getDisplayName(),
 
-                innings.getBowlingTeam()
-                        .getTeam()
-                        .getName(),
+                innings.getBowlingSide()
+                        .getDisplayName(),
 
                 innings.getTotalRuns(),
                 innings.getWickets(),

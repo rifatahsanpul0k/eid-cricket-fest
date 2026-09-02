@@ -76,6 +76,23 @@ class OpenApiContractIntegrationTest
                 "/api/v1/tournament-editions/{editionId}/matches"
         )).isTrue();
 
+        assertThat(paths.has("/api/v1/friendly-matches"))
+                .isTrue();
+
+        assertThat(paths.has("/api/v1/friendly-matches/player-options"))
+                .isTrue();
+
+        assertThat(paths.has("/api/v1/matches/{matchId}"))
+                .isTrue();
+
+        assertThat(paths.has(
+                "/api/v1/matches/{matchId}/operations/reschedule"
+        )).isTrue();
+
+        assertThat(paths.has(
+                "/api/v1/matches/{matchId}/operations/rematch"
+        )).isTrue();
+
         assertThat(paths.has("/api/v1/innings/{inningsId}/deliveries"))
                 .isTrue();
 
@@ -102,6 +119,38 @@ class OpenApiContractIntegrationTest
                 paths.path("/api/v1/matches/{matchId}/live")
                         .path("get")
         )).isFalse();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/friendly-matches")
+                        .path("get")
+        )).isFalse();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/friendly-matches")
+                        .path("post")
+        )).isTrue();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/friendly-matches/player-options")
+                        .path("get")
+        )).isTrue();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/matches/{matchId}")
+                        .path("get")
+        )).isTrue();
+
+        assertThat(hasBearerRequirement(
+                paths.path(
+                        "/api/v1/matches/{matchId}/operations/reschedule"
+                ).path("patch")
+        )).isTrue();
+
+        assertThat(hasBearerRequirement(
+                paths.path(
+                        "/api/v1/matches/{matchId}/operations/rematch"
+                ).path("post")
+        )).isTrue();
 
         assertThat(hasBearerRequirement(
                 paths.path("/api/v1/players/me/team")

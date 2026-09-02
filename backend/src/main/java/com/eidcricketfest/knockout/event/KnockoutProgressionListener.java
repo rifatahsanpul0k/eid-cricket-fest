@@ -2,6 +2,7 @@ package com.eidcricketfest.knockout.event;
 
 import com.eidcricketfest.knockout.service.KnockoutService;
 import com.eidcricketfest.match.entity.MatchStage;
+import com.eidcricketfest.match.entity.MatchType;
 import com.eidcricketfest.match.event.MatchCompletedEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.*;
@@ -23,6 +24,10 @@ public class KnockoutProgressionListener {
     public void onMatchCompleted(
             MatchCompletedEvent event
     ) {
+
+        if (event.matchType() != MatchType.TOURNAMENT) {
+            return;
+        }
 
         if (event.stage()
                 == MatchStage.SEMI_FINAL) {

@@ -23,7 +23,7 @@ class FlywayMigrationIntegrationTest
 
         assertThat(
                 current.getVersion().getVersion()
-        ).isEqualTo("18");
+        ).isEqualTo("20");
     }
 
     @Test
@@ -34,10 +34,12 @@ class FlywayMigrationIntegrationTest
         assertTableExists("registration_payments");
         assertTableExists("drafts");
         assertTableExists("matches");
+        assertTableExists("match_sides");
         assertTableExists("innings");
         assertTableExists("deliveries");
         assertTableExists("wickets");
         assertTableExists("tournament_player_awards");
+        assertTableExists("match_operation_audits");
 
         assertColumnExists(
                 "deliveries",
@@ -47,6 +49,36 @@ class FlywayMigrationIntegrationTest
         assertColumnExists(
                 "innings",
                 "score_revision"
+        );
+
+        assertColumnExists(
+                "matches",
+                "match_type"
+        );
+
+        assertColumnExists(
+                "matches",
+                "result_status"
+        );
+
+        assertColumnExists(
+                "matches",
+                "rematch_of_match_id"
+        );
+
+        assertColumnExists(
+                "matches",
+                "superseded_by_match_id"
+        );
+
+        assertColumnExists(
+                "playing_xi_entries",
+                "player_id"
+        );
+
+        assertColumnExists(
+                "playing_xi_entries",
+                "match_side_id"
         );
     }
 

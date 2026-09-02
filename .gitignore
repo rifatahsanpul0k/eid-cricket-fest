@@ -19,3 +19,11 @@ task.md
 
 # Local/private key material
 *.key
+
+# Local agent / AI tooling
+.codex/
+AGENTS.md
+implementation.md
+
+# GitHub modernization/agent tooling
+.github/modernize/

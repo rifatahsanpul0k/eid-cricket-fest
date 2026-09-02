@@ -630,7 +630,8 @@ class PaginationQueryCountIntegrationTest
             int matchNumber
     ) {
 
-        jdbcTemplate.update(
+        Long matchId =
+                jdbcTemplate.queryForObject(
                 """
                 INSERT INTO matches (
                     tournament_edition_id,
@@ -658,13 +659,86 @@ class PaginationQueryCountIntegrationTest
                     CURRENT_TIMESTAMP,
                     0
                 )
+                RETURNING id
                 """,
+                Long.class,
                 editionId,
                 teamAId,
                 teamBId,
                 stage,
                 matchNumber,
                 status
+        );
+
+        createMatchSides(
+                matchId,
+                teamAId,
+                teamBId
+        );
+    }
+
+    private void createMatchSides(
+            Long matchId,
+            Long teamAId,
+            Long teamBId
+    ) {
+
+        Long teamASideId =
+                createMatchSide(
+                        matchId,
+                        teamAId,
+                        "A"
+                );
+
+        Long teamBSideId =
+                createMatchSide(
+                        matchId,
+                        teamBId,
+                        "B"
+                );
+
+        jdbcTemplate.update(
+                """
+                UPDATE matches
+                SET
+                    team_a_side_id = ?,
+                    team_b_side_id = ?
+                WHERE id = ?
+                """,
+                teamASideId,
+                teamBSideId,
+                matchId
+        );
+    }
+
+    private Long createMatchSide(
+            Long matchId,
+            Long tournamentTeamId,
+            String sideKey
+    ) {
+
+        return jdbcTemplate.queryForObject(
+                """
+                INSERT INTO match_sides (
+                    match_id,
+                    side_key,
+                    display_name,
+                    tournament_team_id
+                )
+                SELECT
+                    ?,
+                    ?,
+                    t.name,
+                    tt.id
+                FROM tournament_teams tt
+                JOIN teams t ON t.id = tt.team_id
+                WHERE tt.id = ?
+                RETURNING id
+                """,
+                Long.class,
+                matchId,
+                sideKey,
+                tournamentTeamId
         );
     }
 }

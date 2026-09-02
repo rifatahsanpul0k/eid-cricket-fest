@@ -6,6 +6,7 @@ import com.eidcricketfest.match.dto.MatchResponse;
 import com.eidcricketfest.match.entity.CricketMatch;
 import com.eidcricketfest.match.entity.MatchToss;
 import com.eidcricketfest.match.entity.TossDecision;
+import com.eidcricketfest.match.entity.MatchSide;
 import com.eidcricketfest.match.entity.PlayingXiEntry;
 import com.eidcricketfest.match.repository.CricketMatchRepository;
 import com.eidcricketfest.match.repository.MatchScorerRepository;
@@ -20,7 +21,6 @@ import com.eidcricketfest.scoring.entity.Delivery;
 import com.eidcricketfest.scoring.repository.InningsRepository;
 import com.eidcricketfest.scoring.repository.DeliveryRepository;
 import com.eidcricketfest.scoring.repository.WicketRepository;
-import com.eidcricketfest.team.entity.TournamentTeam;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,12 +103,12 @@ public class ScorerMatchQueryService {
                 playingXiRepository
                         .findDetailedByMatchId(matchId);
 
-        Long teamAId =
-                match.getTeamA()
+        Long teamASideId =
+                match.getTeamASide()
                         .getId();
 
-        Long teamBId =
-                match.getTeamB()
+        Long teamBSideId =
+                match.getTeamBSide()
                         .getId();
 
         LiveMatchResponse live =
@@ -121,8 +121,8 @@ public class ScorerMatchQueryService {
         return new ScorerMatchStateResponse(
                 toMatchResponse(match),
                 live,
-                playersForTeam(playingXi, teamAId),
-                playersForTeam(playingXi, teamBId),
+                playersForTeam(playingXi, teamASideId),
+                playersForTeam(playingXi, teamBSideId),
                 dismissedPlayingXiIds(live),
                 previousOverBowlerPlayingXiId(live),
                 nextInnings.battingTeamId(),
@@ -156,9 +156,9 @@ public class ScorerMatchQueryService {
         }
 
         return new NextInnings(
-                latest.getBowlingTeam()
+                latest.getBowlingSide()
                         .getId(),
-                latest.getBattingTeam()
+                latest.getBattingSide()
                         .getId()
         );
     }
@@ -174,14 +174,14 @@ public class ScorerMatchQueryService {
             return new NextInnings(null, null);
         }
 
-        TournamentTeam tossWinner =
-                toss.getWinnerTeam();
+        MatchSide tossWinner =
+                toss.getWinnerSide();
 
-        TournamentTeam other =
+        MatchSide other =
                 tossWinner.getId()
-                        .equals(match.getTeamA().getId())
-                        ? match.getTeamB()
-                        : match.getTeamA();
+                        .equals(match.getTeamASide().getId())
+                        ? match.getTeamBSide()
+                        : match.getTeamASide();
 
         if (toss.getDecision() == TossDecision.BAT) {
             return new NextInnings(
@@ -198,15 +198,15 @@ public class ScorerMatchQueryService {
 
     private List<ScorerMatchStateResponse.PlayingXiPlayer> playersForTeam(
             List<PlayingXiEntry> playingXi,
-            Long tournamentTeamId
+            Long matchSideId
     ) {
 
         return playingXi
                 .stream()
                 .filter(entry ->
-                        entry.getTournamentTeam()
+                        entry.getMatchSide()
                                 .getId()
-                                .equals(tournamentTeamId)
+                                .equals(matchSideId)
                 )
                 .map(this::toPlayer)
                 .toList();
@@ -218,16 +218,13 @@ public class ScorerMatchQueryService {
 
         return new ScorerMatchStateResponse.PlayingXiPlayer(
                 entry.getId(),
-                entry.getTournamentTeam()
+                entry.getMatchSide()
                         .getId(),
-                entry.getTournamentTeam()
-                        .getTeam()
-                        .getName(),
-                entry.getRegistration()
-                        .getPlayer()
+                entry.getMatchSide()
+                        .getDisplayName(),
+                entry.getPlayer()
                         .getId(),
-                entry.getRegistration()
-                        .getPlayer()
+                entry.getPlayer()
                         .getFullName(),
                 entry.isCaptain(),
                 entry.isWicketkeeper()
@@ -247,21 +244,31 @@ public class ScorerMatchQueryService {
 
         return new MatchResponse(
                 match.getId(),
+                match.getMatchType(),
                 match.getMatchNumber(),
                 match.getRoundNumber(),
                 match.getStage(),
                 match.getStatus(),
+                match.getResultStatus(),
+                match.getRematchOfMatch() != null
+                        ? match.getRematchOfMatch().getId()
+                        : null,
+                match.getSupersededByMatch() != null
+                        ? match.getSupersededByMatch().getId()
+                        : null,
                 new MatchResponse.TeamInfo(
-                        match.getTeamA().getId(),
-                        match.getTeamA()
-                                .getTeam()
-                                .getName()
+                        match.getTeamASide().getId(),
+                        match.getTeamA() != null
+                                ? match.getTeamA().getId()
+                                : null,
+                        match.getTeamASide().getDisplayName()
                 ),
                 new MatchResponse.TeamInfo(
-                        match.getTeamB().getId(),
-                        match.getTeamB()
-                                .getTeam()
-                                .getName()
+                        match.getTeamBSide().getId(),
+                        match.getTeamB() != null
+                                ? match.getTeamB().getId()
+                                : null,
+                        match.getTeamBSide().getDisplayName()
                 ),
                 match.getOversPerInnings(),
                 venue,
@@ -269,13 +276,15 @@ public class ScorerMatchQueryService {
                 scorerRepository.existsByMatch_Id(match.getId()),
                 playingXiSubmitted(
                         match,
-                        match.getTeamA().getId()
+                        match.getTeamASide().getId()
                 ),
                 playingXiSubmitted(
                         match,
-                        match.getTeamB().getId()
+                        match.getTeamBSide().getId()
                 ),
-                tossRepository.existsByMatch_Id(match.getId())
+                tossRepository.existsByMatch_Id(match.getId()),
+                List.of(),
+                List.of()
         );
     }
 
@@ -350,19 +359,27 @@ public class ScorerMatchQueryService {
 
     private boolean playingXiSubmitted(
             CricketMatch match,
-            Long tournamentTeamId
+            Long matchSideId
     ) {
 
         Integer required =
-                match.getTournamentEdition()
-                        .getPlayingXiSize();
+                match.isTournament()
+                        ? match.requireTournamentEdition()
+                                .getPlayingXiSize()
+                        : Math.toIntExact(
+                                playingXiRepository
+                                        .countByMatch_IdAndMatchSide_Id(
+                                                match.getId(),
+                                                matchSideId
+                                        )
+                        );
 
         return required != null
                 && required > 0
                 && playingXiRepository
-                .countByMatch_IdAndTournamentTeam_Id(
+                .countByMatch_IdAndMatchSide_Id(
                         match.getId(),
-                        tournamentTeamId
+                        matchSideId
                 ) == required;
     }
 

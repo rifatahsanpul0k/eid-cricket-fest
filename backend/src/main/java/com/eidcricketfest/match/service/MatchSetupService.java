@@ -23,6 +23,7 @@ public class MatchSetupService {
     private final MatchScorerRepository scorerRepository;
     private final MatchTossRepository tossRepository;
     private final PlayingXiEntryRepository playingXiRepository;
+    private final MatchSideRepository matchSideRepository;
 
     private final TournamentTeamRepository tournamentTeamRepository;
     private final TeamRosterEntryRepository rosterRepository;
@@ -35,6 +36,7 @@ public class MatchSetupService {
             MatchScorerRepository scorerRepository,
             MatchTossRepository tossRepository,
             PlayingXiEntryRepository playingXiRepository,
+            MatchSideRepository matchSideRepository,
             TournamentTeamRepository tournamentTeamRepository,
             TeamRosterEntryRepository rosterRepository,
             PlayerRegistrationRepository registrationRepository,
@@ -44,6 +46,7 @@ public class MatchSetupService {
         this.scorerRepository = scorerRepository;
         this.tossRepository = tossRepository;
         this.playingXiRepository = playingXiRepository;
+        this.matchSideRepository = matchSideRepository;
         this.tournamentTeamRepository = tournamentTeamRepository;
         this.rosterRepository = rosterRepository;
         this.registrationRepository = registrationRepository;
@@ -117,7 +120,7 @@ public class MatchSetupService {
 
             playingXiByTeam
                     .computeIfAbsent(
-                            entry.getTournamentTeam().getId(),
+                            entry.getMatchSide().getId(),
                             ignored -> new ArrayList<>()
                     )
                     .add(entry);
@@ -126,11 +129,11 @@ public class MatchSetupService {
         return new MatchSetupDetailsResponse(
                 scorers,
                 teamPlayingXi(
-                        match.getTeamA().getId(),
+                        match.getTeamASide().getId(),
                         playingXiByTeam
                 ),
                 teamPlayingXi(
-                        match.getTeamB().getId(),
+                        match.getTeamBSide().getId(),
                         playingXiByTeam
                 )
         );
@@ -162,7 +165,7 @@ public class MatchSetupService {
         }
 
         int required =
-                match.getTournamentEdition()
+                match.requireTournamentEdition()
                         .getPlayingXiSize();
 
         Set<Long> uniqueIds =
@@ -233,9 +236,9 @@ public class MatchSetupService {
         }
 
         playingXiRepository
-                .deleteByMatch_IdAndTournamentTeam_Id(
+                .deleteByMatch_IdAndMatchSide_Id(
                         matchId,
-                        tournamentTeamId
+                        match.sideForTournamentTeam(team).getId()
                 );
 
         for (PlayerRegistration registration : registrations) {
@@ -285,18 +288,8 @@ public class MatchSetupService {
             );
         }
 
-        TournamentTeam winner =
-                tournamentTeamRepository
-                        .findDetailedById(
-                                request.winnerTournamentTeamId()
-                        )
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Tournament team not found"
-                                )
-                        );
-
-        assertTeamInMatch(match, winner);
+        MatchSide winner =
+                tossWinnerSide(match, request);
 
         User actor = findUser(actorUserId);
 
@@ -312,22 +305,69 @@ public class MatchSetupService {
         match.markTossCompleted();
     }
 
+    private MatchSide tossWinnerSide(
+            CricketMatch match,
+            RecordTossRequest request
+    ) {
+
+        if (request.winnerMatchSideId() != null) {
+            MatchSide side =
+                    matchSideRepository.findById(
+                                    request.winnerMatchSideId()
+                            )
+                            .orElseThrow(() ->
+                                    new ResourceNotFoundException(
+                                            "Match side not found"
+                                    )
+                            );
+
+            if (!side.getMatch().getId().equals(match.getId())) {
+                throw new ConflictException(
+                        "Side does not participate in this match"
+                );
+            }
+
+            return side;
+        }
+
+        if (request.winnerTournamentTeamId() == null) {
+            throw new ConflictException(
+                    "Toss winner is required"
+            );
+        }
+
+        TournamentTeam winner =
+                tournamentTeamRepository
+                        .findDetailedById(
+                                request.winnerTournamentTeamId()
+                        )
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Tournament team not found"
+                                )
+                        );
+
+        assertTeamInMatch(match, winner);
+
+        return match.sideForTournamentTeam(winner);
+    }
+
     private void refreshReadyState(
             CricketMatch match
     ) {
 
         long teamACount =
                 playingXiRepository
-                        .countByMatch_IdAndTournamentTeam_Id(
+                        .countByMatch_IdAndMatchSide_Id(
                                 match.getId(),
-                                match.getTeamA().getId()
+                                match.getTeamASide().getId()
                         );
 
         long teamBCount =
                 playingXiRepository
-                        .countByMatch_IdAndTournamentTeam_Id(
+                        .countByMatch_IdAndMatchSide_Id(
                                 match.getId(),
-                                match.getTeamB().getId()
+                                match.getTeamBSide().getId()
                         );
 
         boolean scorerAssigned =
@@ -335,11 +375,13 @@ public class MatchSetupService {
                         .existsByMatch_Id(match.getId());
 
         int required =
-                match.getTournamentEdition()
-                        .getPlayingXiSize();
+                match.isTournament()
+                        ? match.requireTournamentEdition()
+                                .getPlayingXiSize()
+                        : 2;
 
-        if (teamACount == required
-                && teamBCount == required
+        if (teamACount >= required
+                && teamBCount >= required
                 && scorerAssigned) {
 
             match.markReady();
@@ -405,36 +447,62 @@ public class MatchSetupService {
     }
 
     private MatchSetupDetailsResponse.TeamPlayingXi teamPlayingXi(
-            Long tournamentTeamId,
+            Long matchSideId,
             Map<Long, List<PlayingXiEntry>> playingXiByTeam
     ) {
 
         List<PlayingXiEntry> entries =
                 playingXiByTeam.getOrDefault(
-                        tournamentTeamId,
+                        matchSideId,
                         List.of()
                 );
 
         List<Long> registrationIds =
                 entries.stream()
                         .map(entry ->
-                                entry.getRegistration().getId()
+                                entry.getRegistration() != null
+                                        ? entry.getRegistration().getId()
+                                        : null
                         )
+                        .filter(Objects::nonNull)
+                        .toList();
+
+        List<Long> playerIds =
+                entries.stream()
+                        .map(entry -> entry.getPlayer().getId())
                         .toList();
 
         Long wicketkeeperRegistrationId =
                 entries.stream()
                         .filter(PlayingXiEntry::isWicketkeeper)
                         .map(entry ->
-                                entry.getRegistration().getId()
+                                entry.getRegistration() != null
+                                        ? entry.getRegistration().getId()
+                                        : null
                         )
+                        .filter(Objects::nonNull)
+                        .findFirst()
+                        .orElse(null);
+
+        Long wicketkeeperPlayerId =
+                entries.stream()
+                        .filter(PlayingXiEntry::isWicketkeeper)
+                        .map(entry -> entry.getPlayer().getId())
                         .findFirst()
                         .orElse(null);
 
         return new MatchSetupDetailsResponse.TeamPlayingXi(
-                tournamentTeamId,
+                matchSideId,
+                entries.stream()
+                        .map(PlayingXiEntry::getTournamentTeam)
+                        .filter(Objects::nonNull)
+                        .map(TournamentTeam::getId)
+                        .findFirst()
+                        .orElse(null),
                 registrationIds,
-                wicketkeeperRegistrationId
+                playerIds,
+                wicketkeeperRegistrationId,
+                wicketkeeperPlayerId
         );
     }
 }

@@ -6,7 +6,10 @@ import { assertSameOriginRequest } from "@/lib/auth/origin";
 import {
   assignMatchScorer,
   markNoResult,
+  orderRematch,
   recordToss,
+  reasonMatchOperation,
+  rescheduleMatchOperation,
   resolveKnockoutWinner,
   scheduleMatch,
   submitPlayingXi,
@@ -35,11 +38,16 @@ export async function POST(
     return redirectWithMessage(
       request,
       returnTo,
-      problemMessage(result.error) ?? "Match operation failed."
+        problemMessage(result.error) ?? "Match operation failed."
     );
   }
 
-  return NextResponse.redirect(new URL(returnTo, request.url), { status: 303 });
+  const redirectTo =
+    result.data?.id && result.data.id !== id
+      ? `/dashboard/matches/${result.data.id}`
+      : returnTo;
+
+  return NextResponse.redirect(new URL(redirectTo, request.url), { status: 303 });
 }
 
 async function handleMatchAction(matchId: number, formData: FormData) {
@@ -64,6 +72,50 @@ async function handleMatchAction(matchId: number, formData: FormData) {
       scheduledAt,
       venueId: numberValue(formData, "venueId"),
     });
+  }
+
+  if (action === "operation-reschedule") {
+    const scheduledAt = instantValue(formData, "scheduledAt");
+
+    if (!scheduledAt) {
+      return {
+        ok: false as const,
+        error: {
+          title: "Invalid reschedule",
+          detail: "Choose a valid date and time before rescheduling the match.",
+          status: 400,
+        },
+        status: 400,
+      };
+    }
+
+    return rescheduleMatchOperation(matchId, {
+      scheduledAt,
+      venueId: numberValue(formData, "venueId"),
+      oversPerInnings: optionalNumber(formData, "oversPerInnings"),
+      reason: formValue(formData, "reason"),
+    });
+  }
+
+  if (action === "operation-rematch") {
+    const scheduledAt = instantValue(formData, "scheduledAt");
+
+    return orderRematch(matchId, {
+      reason: formValue(formData, "reason"),
+      scheduledAt,
+      venueId: optionalNumber(formData, "venueId"),
+      oversPerInnings: optionalNumber(formData, "oversPerInnings"),
+    });
+  }
+
+  const operation = operationSlug(action);
+
+  if (operation) {
+    return reasonMatchOperation(
+      matchId,
+      operation,
+      formValue(formData, "reason")
+    );
   }
 
   if (action === "scorer") {
@@ -93,7 +145,8 @@ async function handleMatchAction(matchId: number, formData: FormData) {
   if (action === "toss") {
     return recordToss(matchId, {
       decision: formValue(formData, "decision") === "BOWL" ? "BOWL" : "BAT",
-      winnerTournamentTeamId: numberValue(formData, "winnerTournamentTeamId"),
+      winnerMatchSideId: optionalNumber(formData, "winnerMatchSideId"),
+      winnerTournamentTeamId: optionalNumber(formData, "winnerTournamentTeamId"),
     });
   }
 
@@ -111,6 +164,20 @@ async function handleMatchAction(matchId: number, formData: FormData) {
         : "TIEBREAKER",
     winnerTournamentTeamId: numberValue(formData, "winnerTournamentTeamId"),
   });
+}
+
+function operationSlug(action?: string) {
+  if (action === "operation-postpone") return "postpone";
+  if (action === "operation-suspend") return "suspend";
+  if (action === "operation-resume") return "resume";
+  if (action === "operation-abandon") return "abandon";
+  if (action === "operation-cancel") return "cancel";
+  if (action === "operation-reset-toss") return "reset-toss";
+  if (action === "operation-review") return "review";
+  if (action === "operation-restore-result") return "restore-result";
+  if (action === "operation-void-result") return "void-result";
+
+  return undefined;
 }
 
 function numberValue(formData: FormData, name: string) {

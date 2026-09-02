@@ -254,8 +254,7 @@ public class StatisticsService {
                     delivery.getStriker();
 
             Long playerId =
-                    striker.getRegistration()
-                            .getPlayer()
+                    striker.getPlayer()
                             .getId();
 
             BatterStats stats =
@@ -264,8 +263,7 @@ public class StatisticsService {
                             ignored ->
                                     new BatterStats(
                                             playerId,
-                                            striker.getRegistration()
-                                                    .getPlayer()
+                                            striker.getPlayer()
                                                     .getFullName()
                                     )
                     );
@@ -308,7 +306,6 @@ public class StatisticsService {
 
             Long playerId =
                     wicket.getDismissedPlayer()
-                            .getRegistration()
                             .getPlayer()
                             .getId();
 
@@ -319,7 +316,6 @@ public class StatisticsService {
                                     new BatterStats(
                                             playerId,
                                             wicket.getDismissedPlayer()
-                                                    .getRegistration()
                                                     .getPlayer()
                                                     .getFullName()
                                     )
@@ -355,8 +351,7 @@ public class StatisticsService {
                     delivery.getBowler();
 
             Long playerId =
-                    bowler.getRegistration()
-                            .getPlayer()
+                    bowler.getPlayer()
                             .getId();
 
             BowlerStats stats =
@@ -365,8 +360,7 @@ public class StatisticsService {
                             ignored ->
                                     new BowlerStats(
                                             playerId,
-                                            bowler.getRegistration()
-                                                    .getPlayer()
+                                            bowler.getPlayer()
                                                     .getFullName()
                                     )
                     );
@@ -416,8 +410,7 @@ public class StatisticsService {
                             .getBowler();
 
             Long playerId =
-                    bowler.getRegistration()
-                            .getPlayer()
+                    bowler.getPlayer()
                             .getId();
 
             BowlerStats stats =

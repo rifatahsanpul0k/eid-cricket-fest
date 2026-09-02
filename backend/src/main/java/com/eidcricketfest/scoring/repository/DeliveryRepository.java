@@ -42,14 +42,11 @@ public interface DeliveryRepository
     SELECT d
     FROM Delivery d
     JOIN FETCH d.striker s
-    JOIN FETCH s.registration sr
-    JOIN FETCH sr.player
+    JOIN FETCH s.player
     JOIN FETCH d.nonStriker ns
-    JOIN FETCH ns.registration nsr
-    JOIN FETCH nsr.player
+    JOIN FETCH ns.player
     JOIN FETCH d.bowler b
-    JOIN FETCH b.registration br
-    JOIN FETCH br.player
+    JOIN FETCH b.player
     WHERE d.innings.id = :inningsId
       AND d.voidedAt IS NULL
     ORDER BY d.sequenceNo
@@ -76,13 +73,15 @@ public interface DeliveryRepository
     SELECT d
     FROM Delivery d
     JOIN FETCH d.innings i
+    JOIN i.match m
     JOIN FETCH d.striker s
-    JOIN FETCH s.registration sr
-    JOIN FETCH sr.player
+    JOIN FETCH s.player
     JOIN FETCH d.bowler b
-    JOIN FETCH b.registration br
-    JOIN FETCH br.player
+    JOIN FETCH b.player
     WHERE i.tournamentEdition.id = :editionId
+      AND m.matchType = com.eidcricketfest.match.entity.MatchType.TOURNAMENT
+      AND m.status = com.eidcricketfest.match.entity.MatchStatus.COMPLETED
+      AND m.resultStatus = com.eidcricketfest.match.entity.MatchResultStatus.OFFICIAL
       AND d.voidedAt IS NULL
     ORDER BY i.id, d.sequenceNo
 """)
@@ -91,13 +90,12 @@ public interface DeliveryRepository
     );
 
     @Query("""
-        SELECT d
-        FROM Delivery d
-        JOIN FETCH d.innings i
-        JOIN FETCH d.striker s
-        JOIN FETCH s.registration sr
-        JOIN FETCH sr.player
-        WHERE sr.player.id = :playerId
+    SELECT d
+    FROM Delivery d
+    JOIN FETCH d.innings i
+    JOIN FETCH d.striker s
+    JOIN FETCH s.player p
+    WHERE p.id = :playerId
           AND d.voidedAt IS NULL
         ORDER BY i.id, d.sequenceNo
     """)
@@ -106,14 +104,13 @@ public interface DeliveryRepository
     );
 
     @Query("""
-        SELECT d
-        FROM Delivery d
-        JOIN FETCH d.innings i
-        JOIN FETCH d.striker s
-        JOIN FETCH s.registration sr
-        JOIN FETCH sr.player
-        WHERE i.tournamentEdition.id = :editionId
-          AND sr.player.id = :playerId
+    SELECT d
+    FROM Delivery d
+    JOIN FETCH d.innings i
+    JOIN FETCH d.striker s
+    JOIN FETCH s.player p
+    WHERE i.tournamentEdition.id = :editionId
+      AND p.id = :playerId
           AND d.voidedAt IS NULL
         ORDER BY i.id, d.sequenceNo
     """)
@@ -123,13 +120,12 @@ public interface DeliveryRepository
     );
 
     @Query("""
-        SELECT d
-        FROM Delivery d
-        JOIN FETCH d.innings i
-        JOIN FETCH d.bowler b
-        JOIN FETCH b.registration br
-        JOIN FETCH br.player
-        WHERE br.player.id = :playerId
+    SELECT d
+    FROM Delivery d
+    JOIN FETCH d.innings i
+    JOIN FETCH d.bowler b
+    JOIN FETCH b.player p
+    WHERE p.id = :playerId
           AND d.voidedAt IS NULL
         ORDER BY i.id, d.sequenceNo
     """)
@@ -138,14 +134,13 @@ public interface DeliveryRepository
     );
 
     @Query("""
-        SELECT d
-        FROM Delivery d
-        JOIN FETCH d.innings i
-        JOIN FETCH d.bowler b
-        JOIN FETCH b.registration br
-        JOIN FETCH br.player
-        WHERE i.tournamentEdition.id = :editionId
-          AND br.player.id = :playerId
+    SELECT d
+    FROM Delivery d
+    JOIN FETCH d.innings i
+    JOIN FETCH d.bowler b
+    JOIN FETCH b.player p
+    WHERE i.tournamentEdition.id = :editionId
+      AND p.id = :playerId
           AND d.voidedAt IS NULL
         ORDER BY i.id, d.sequenceNo
     """)

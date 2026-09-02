@@ -125,8 +125,9 @@ public class MatchResultService {
         eventPublisher.publishEvent(
                 new MatchCompletedEvent(
                         match.getId(),
-                        match.getTournamentEdition()
+                        match.requireTournamentEdition()
                                 .getId(),
+                        match.getMatchType(),
                         match.getStage()
                 )
         );

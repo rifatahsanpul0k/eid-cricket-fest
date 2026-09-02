@@ -16,6 +16,8 @@ public interface InningsRepository
             Short inningsNumber
     );
 
+    boolean existsByMatch_Id(Long matchId);
+
     Optional<Innings>
     findByMatch_IdAndInningsNumber(
             Long matchId,

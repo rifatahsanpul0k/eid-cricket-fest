@@ -30,11 +30,9 @@ public interface WicketRepository
     FROM Wicket w
     JOIN FETCH w.delivery d
     JOIN FETCH w.dismissedPlayer dp
-    JOIN FETCH dp.registration dpr
-    JOIN FETCH dpr.player
+    JOIN FETCH dp.player
     LEFT JOIN FETCH w.fielder f
-    LEFT JOIN FETCH f.registration fr
-    LEFT JOIN FETCH fr.player
+    LEFT JOIN FETCH f.player
     WHERE d.innings.id = :inningsId
       AND d.voidedAt IS NULL
 """)
@@ -47,13 +45,15 @@ public interface WicketRepository
     FROM Wicket w
     JOIN FETCH w.delivery d
     JOIN FETCH d.innings i
+    JOIN i.match m
     JOIN FETCH d.bowler bowler
-    JOIN FETCH bowler.registration br
-    JOIN FETCH br.player
+    JOIN FETCH bowler.player
     JOIN FETCH w.dismissedPlayer dp
-    JOIN FETCH dp.registration dr
-    JOIN FETCH dr.player
+    JOIN FETCH dp.player
     WHERE i.tournamentEdition.id = :editionId
+      AND m.matchType = com.eidcricketfest.match.entity.MatchType.TOURNAMENT
+      AND m.status = com.eidcricketfest.match.entity.MatchStatus.COMPLETED
+      AND m.resultStatus = com.eidcricketfest.match.entity.MatchResultStatus.OFFICIAL
       AND d.voidedAt IS NULL
 """)
     List<Wicket> findActiveByEditionId(
@@ -64,10 +64,10 @@ public interface WicketRepository
         SELECT w
         FROM Wicket w
         JOIN FETCH w.delivery d
-        JOIN FETCH d.innings
+        JOIN FETCH d.innings i
         JOIN FETCH w.dismissedPlayer dp
-        JOIN FETCH dp.registration dr
-        WHERE dr.player.id = :playerId
+        JOIN FETCH dp.player p
+        WHERE p.id = :playerId
           AND d.voidedAt IS NULL
     """)
     List<Wicket> findDismissalsForPlayer(
@@ -80,9 +80,9 @@ public interface WicketRepository
         JOIN FETCH w.delivery d
         JOIN FETCH d.innings i
         JOIN FETCH w.dismissedPlayer dp
-        JOIN FETCH dp.registration dr
+        JOIN FETCH dp.player p
         WHERE i.tournamentEdition.id = :editionId
-          AND dr.player.id = :playerId
+          AND p.id = :playerId
           AND d.voidedAt IS NULL
     """)
     List<Wicket> findDismissalsForPlayerInEdition(
@@ -94,10 +94,10 @@ public interface WicketRepository
         SELECT w
         FROM Wicket w
         JOIN FETCH w.delivery d
-        JOIN FETCH d.innings
+        JOIN FETCH d.innings i
         JOIN FETCH d.bowler b
-        JOIN FETCH b.registration br
-        WHERE br.player.id = :playerId
+        JOIN FETCH b.player p
+        WHERE p.id = :playerId
           AND w.creditedToBowler = true
           AND d.voidedAt IS NULL
     """)
@@ -111,9 +111,9 @@ public interface WicketRepository
         JOIN FETCH w.delivery d
         JOIN FETCH d.innings i
         JOIN FETCH d.bowler b
-        JOIN FETCH b.registration br
+        JOIN FETCH b.player p
         WHERE i.tournamentEdition.id = :editionId
-          AND br.player.id = :playerId
+          AND p.id = :playerId
           AND w.creditedToBowler = true
           AND d.voidedAt IS NULL
     """)
@@ -128,9 +128,9 @@ public interface WicketRepository
         JOIN FETCH w.delivery d
         JOIN FETCH d.innings i
         JOIN FETCH w.fielder f
-        JOIN FETCH f.registration fr
+        JOIN FETCH f.player p
         WHERE i.tournamentEdition.id = :editionId
-          AND fr.player.id = :playerId
+          AND p.id = :playerId
           AND d.voidedAt IS NULL
     """)
     List<Wicket> findFieldingDismissalsForPlayerInEdition(
