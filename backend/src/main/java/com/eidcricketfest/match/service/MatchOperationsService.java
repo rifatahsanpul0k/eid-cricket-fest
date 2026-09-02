@@ -3,6 +3,7 @@ package com.eidcricketfest.match.service;
 import com.eidcricketfest.auth.entity.User;
 import com.eidcricketfest.auth.repository.UserRepository;
 import com.eidcricketfest.common.exception.*;
+import com.eidcricketfest.knockout.service.KnockoutService;
 import com.eidcricketfest.match.dto.*;
 import com.eidcricketfest.match.entity.*;
 import com.eidcricketfest.match.repository.*;
@@ -23,6 +24,7 @@ public class MatchOperationsService {
     private final InningsRepository inningsRepository;
     private final MatchOperationAuditRepository auditRepository;
     private final UserRepository userRepository;
+    private final KnockoutService knockoutService;
 
     public MatchOperationsService(
             CricketMatchRepository matchRepository,
@@ -31,7 +33,8 @@ public class MatchOperationsService {
             MatchTossRepository tossRepository,
             InningsRepository inningsRepository,
             MatchOperationAuditRepository auditRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            KnockoutService knockoutService
     ) {
         this.matchRepository = matchRepository;
         this.venueRepository = venueRepository;
@@ -40,6 +43,7 @@ public class MatchOperationsService {
         this.inningsRepository = inningsRepository;
         this.auditRepository = auditRepository;
         this.userRepository = userRepository;
+        this.knockoutService = knockoutService;
     }
 
     public Long reschedule(
@@ -188,7 +192,10 @@ public class MatchOperationsService {
                 MatchOperationType.MARK_UNDER_REVIEW,
                 request.reason(),
                 null,
-                match::markResultUnderReview
+                () -> {
+                    match.markResultUnderReview();
+                    knockoutService.clearFinalCompletion(match);
+                }
         );
     }
 
@@ -205,7 +212,10 @@ public class MatchOperationsService {
                 MatchOperationType.RESTORE_OFFICIAL,
                 request.reason(),
                 null,
-                match::restoreOfficialResult
+                () -> {
+                    match.restoreOfficialResult();
+                    knockoutService.applyFinalCompletion(match);
+                }
         );
     }
 
@@ -217,13 +227,25 @@ public class MatchOperationsService {
         CricketMatch match = findMatch(matchId);
         assertNoStartedDependents(match);
 
+        if (match.getStatus() != MatchStatus.COMPLETED
+                || match.getResultStatus() == MatchResultStatus.VOID
+                || match.getResultStatus() == MatchResultStatus.SUPERSEDED) {
+            throw new ConflictException(
+                    "Only active completed results can be voided"
+            );
+        }
+
         return mutate(
                 match,
                 actorUserId,
                 MatchOperationType.VOID_RESULT,
                 request.reason(),
                 null,
-                () -> match.voidResult(request.reason().trim())
+                () -> {
+                    knockoutService.clearFinalCompletion(match);
+                    clearUnstartedDependents(match);
+                    match.voidResult(request.reason().trim());
+                }
         );
     }
 
@@ -279,7 +301,11 @@ public class MatchOperationsService {
                 MatchOperationType.ORDER_REMATCH,
                 request.reason(),
                 "rematchId=" + savedRematch.getId(),
-                () -> original.markSupersededBy(savedRematch),
+                () -> {
+                    knockoutService.clearFinalCompletion(original);
+                    clearUnstartedDependents(original);
+                    original.markSupersededBy(savedRematch);
+                },
                 savedRematch
         );
 
@@ -403,6 +429,7 @@ public class MatchOperationsService {
                                 || dependent.getStatus() == MatchStatus.LIVE
                                 || dependent.getStatus() == MatchStatus.INNINGS_BREAK
                                 || dependent.getStatus() == MatchStatus.SUSPENDED
+                                || dependent.getStatus() == MatchStatus.ABANDONED
                                 || dependent.getStatus() == MatchStatus.COMPLETED
                         );
 
@@ -411,6 +438,12 @@ public class MatchOperationsService {
                     "Operation is blocked because a downstream knockout match has started"
             );
         }
+    }
+
+    private void clearUnstartedDependents(CricketMatch match) {
+        matchRepository.detachUnstartedDependents(match.getId());
+        matchRepository.deleteUnstartedDependents(match.getId());
+        matchRepository.flush();
     }
 
     private void attachTournamentSides(CricketMatch match) {

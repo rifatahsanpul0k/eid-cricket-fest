@@ -12,6 +12,8 @@ public record PlayerAwardResponse(
         Long registrationId,
         Long playerId,
         String playerName,
+        Long tournamentTeamId,
+        String teamName,
 
         String notes
 

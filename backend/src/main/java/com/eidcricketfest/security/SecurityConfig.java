@@ -536,6 +536,15 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Award recipient options
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/tournament-editions/*/awards/player-options"
+                        ).hasAnyRole(
+                                "ORGANIZER",
+                                "ADMIN"
+                        )
+
                         // Public awards
                         .requestMatchers(
                                 HttpMethod.GET,

@@ -23,7 +23,7 @@ class FlywayMigrationIntegrationTest
 
         assertThat(
                 current.getVersion().getVersion()
-        ).isEqualTo("20");
+        ).isEqualTo("21");
     }
 
     @Test
@@ -69,6 +69,26 @@ class FlywayMigrationIntegrationTest
         assertColumnExists(
                 "matches",
                 "superseded_by_match_id"
+        );
+
+        assertColumnExists(
+                "tournament_editions",
+                "champion_tournament_team_id"
+        );
+
+        assertColumnExists(
+                "tournament_editions",
+                "runner_up_tournament_team_id"
+        );
+
+        assertColumnExists(
+                "tournament_editions",
+                "final_match_id"
+        );
+
+        assertColumnExists(
+                "tournament_editions",
+                "completed_at"
         );
 
         assertColumnExists(

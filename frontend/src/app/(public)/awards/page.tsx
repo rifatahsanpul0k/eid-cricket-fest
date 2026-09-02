@@ -68,6 +68,9 @@ function AwardCard({ award }: { award: PlayerAward }) {
       <p className="mt-3 text-sm">
         <PlayerLink name={award.playerName} playerId={award.playerId} />
       </p>
+      {award.teamName ? (
+        <p className="mt-2 text-sm text-muted-foreground">{award.teamName}</p>
+      ) : null}
       {award.notes ? (
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
           {award.notes}

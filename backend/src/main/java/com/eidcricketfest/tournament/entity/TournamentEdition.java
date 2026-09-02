@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import com.eidcricketfest.match.entity.CricketMatch;
+import com.eidcricketfest.team.entity.TournamentTeam;
 
 @Entity
 @Table(name = "tournament_editions")
@@ -89,6 +91,21 @@ public class TournamentEdition extends BaseEntity {
             scale = 2
     )
     private BigDecimal lossPoints;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "champion_tournament_team_id")
+    private TournamentTeam championTeam;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "runner_up_tournament_team_id")
+    private TournamentTeam runnerUpTeam;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "final_match_id")
+    private CricketMatch finalMatch;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
 
     protected TournamentEdition() {
     }
@@ -216,6 +233,22 @@ public class TournamentEdition extends BaseEntity {
         return lossPoints;
     }
 
+    public TournamentTeam getChampionTeam() {
+        return championTeam;
+    }
+
+    public TournamentTeam getRunnerUpTeam() {
+        return runnerUpTeam;
+    }
+
+    public CricketMatch getFinalMatch() {
+        return finalMatch;
+    }
+
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
+
     public void updateConfiguration(
             String name,
             LocalDate startDate,
@@ -289,7 +322,11 @@ public class TournamentEdition extends BaseEntity {
         status = target;
     }
 
-    public void markCompleted() {
+    public void markCompleted(
+            TournamentTeam championTeam,
+            TournamentTeam runnerUpTeam,
+            CricketMatch finalMatch
+    ) {
 
         if (status == TournamentEditionStatus.CANCELLED) {
             throw new IllegalStateException(
@@ -297,7 +334,31 @@ public class TournamentEdition extends BaseEntity {
             );
         }
 
+        if (championTeam == null
+                || runnerUpTeam == null
+                || finalMatch == null) {
+            throw new IllegalArgumentException(
+                    "Champion, runner-up, and final match are required"
+            );
+        }
+
+        this.championTeam = championTeam;
+        this.runnerUpTeam = runnerUpTeam;
+        this.finalMatch = finalMatch;
+        completedAt = Instant.now();
         status = TournamentEditionStatus.COMPLETED;
+    }
+
+    public void clearCompletion() {
+
+        championTeam = null;
+        runnerUpTeam = null;
+        finalMatch = null;
+        completedAt = null;
+
+        if (status == TournamentEditionStatus.COMPLETED) {
+            status = TournamentEditionStatus.ONGOING;
+        }
     }
 
     private boolean canTransitionTo(

@@ -323,12 +323,22 @@ public class KnockoutService {
                                 )
                         );
 
-        if (match.getStage()
-                != MatchStage.FINAL) {
-            return;
-        }
+        applyFinalCompletion(match);
+    }
 
-        if (match.getWinnerTeam() == null) {
+    public void applyFinalCompletion(
+            CricketMatch match
+    ) {
+
+        if (match.getMatchType() != MatchType.TOURNAMENT
+                || match.getStage() != MatchStage.FINAL
+                || match.getStatus() != MatchStatus.COMPLETED
+                || match.getResultStatus() != MatchResultStatus.OFFICIAL
+                || match.getWinnerTeam() == null
+                || match.getTournamentEdition() == null
+                || match.getTeamA() == null
+                || match.getTeamB() == null) {
+
             return;
         }
 
@@ -340,7 +350,47 @@ public class KnockoutService {
                         )
                         .orElseThrow();
 
-        edition.markCompleted();
+        TournamentTeam winner =
+                match.getWinnerTeam();
+
+        TournamentTeam runnerUp =
+                match.getTeamA().getId().equals(winner.getId())
+                        ? match.getTeamB()
+                        : match.getTeamA();
+
+        edition.markCompleted(
+                winner,
+                runnerUp,
+                match
+        );
+    }
+
+    public void clearFinalCompletion(
+            CricketMatch match
+    ) {
+
+        if (match.getMatchType() != MatchType.TOURNAMENT
+                || match.getStage() != MatchStage.FINAL
+                || match.getTournamentEdition() == null) {
+
+            return;
+        }
+
+        TournamentEdition edition =
+                editionRepository
+                        .findByIdForUpdate(
+                                match.getTournamentEdition()
+                                        .getId()
+                        )
+                        .orElseThrow();
+
+        if (edition.getFinalMatch() == null
+                || edition.getFinalMatch()
+                        .getId()
+                        .equals(match.getId())) {
+
+            edition.clearCompletion();
+        }
     }
 
     @Transactional(readOnly = true)

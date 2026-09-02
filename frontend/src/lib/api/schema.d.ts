@@ -1377,6 +1377,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tournament-editions/{editionId}/awards/player-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List award recipient options */
+        get: operations["playerOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1439,6 +1456,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            champion?: components["schemas"]["TournamentEditionTeamResponse"];
+            runnerUp?: components["schemas"]["TournamentEditionTeamResponse"];
+            /** Format: int64 */
+            finalMatchId?: number;
+            /** Format: date-time */
+            completedAt?: string;
         };
         SubmitPlayingXiRequest: {
             registrationIds: number[];
@@ -1744,6 +1767,9 @@ export interface components {
             playerId?: number;
             playerName?: string;
             notes?: string;
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            teamName?: string;
         };
         CreateTeamRequest: {
             name: string;
@@ -2517,6 +2543,21 @@ export interface components {
         ScorecardResponse: {
             /** Format: int64 */
             matchId?: number;
+            /** @enum {string} */
+            matchType?: "TOURNAMENT" | "FRIENDLY";
+            /** Format: int32 */
+            matchNumber?: number;
+            /** @enum {string} */
+            stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
+            /** @enum {string} */
+            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            /** @enum {string} */
+            resultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
+            resultText?: string;
+            /** Format: int64 */
+            rematchOfMatchId?: number;
+            /** Format: int64 */
+            supersededByMatchId?: number;
             innings?: components["schemas"]["InningsScorecard"][];
         };
         InningsSummary: {
@@ -2594,6 +2635,21 @@ export interface components {
             primaryCategory?: string;
             battingStyle?: string;
             bowlingStyle?: string;
+        };
+        TournamentEditionTeamResponse: {
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            name?: string;
+        };
+        AwardPlayerOptionResponse: {
+            /** Format: int64 */
+            registrationId?: number;
+            /** Format: int64 */
+            playerId?: number;
+            playerName?: string;
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            teamName?: string;
         };
     };
     responses: never;
@@ -4771,6 +4827,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FriendlyPlayerOptionResponse"][];
+                };
+            };
+        };
+    };
+    playerOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                editionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AwardPlayerOptionResponse"][];
                 };
             };
         };

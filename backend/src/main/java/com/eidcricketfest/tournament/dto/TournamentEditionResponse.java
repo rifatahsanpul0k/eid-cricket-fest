@@ -24,6 +24,10 @@ public record TournamentEditionResponse(
         BigDecimal noResultPoints,
         BigDecimal lossPoints,
         TournamentEditionStatus status,
+        TournamentEditionTeamResponse champion,
+        TournamentEditionTeamResponse runnerUp,
+        Long finalMatchId,
+        Instant completedAt,
         Instant createdAt,
         Instant updatedAt
 ) {

@@ -6,10 +6,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { buttonVariants } from "@/components/ui/button";
 import type { InningsScorecard, Scorecard } from "@/lib/api/scorecard";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export function ScorecardView({ scorecard }: { scorecard: Scorecard }) {
   const innings = scorecard.innings ?? [];
+  const state = scorecardState(scorecard);
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -20,6 +24,26 @@ export function ScorecardView({ scorecard }: { scorecard: Scorecard }) {
         <h1 className="font-heading text-4xl font-bold uppercase tracking-normal">
           Scorecard
         </h1>
+        {state ? (
+          <div className="mt-4 rounded-sm border border-white/10 bg-card p-4">
+            <p className="font-heading text-xl font-bold uppercase tracking-normal text-secondary">
+              {state.title}
+            </p>
+            {state.detail ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {state.detail}
+              </p>
+            ) : null}
+            {state.rematchId ? (
+              <Link
+                className={cn(buttonVariants({ variant: "outline" }), "mt-3 h-9")}
+                href={`/matches/${state.rematchId}/scorecard`}
+              >
+                Rematch scorecard
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {innings.length > 0 ? (
         <div className="grid gap-5">
@@ -34,6 +58,46 @@ export function ScorecardView({ scorecard }: { scorecard: Scorecard }) {
       )}
     </section>
   );
+}
+
+function scorecardState(scorecard: Scorecard) {
+  if (scorecard.status === "ABANDONED") {
+    return {
+      title: "MATCH ABANDONED",
+      detail: scorecard.resultText ?? "Recorded score remains available.",
+    };
+  }
+
+  if (scorecard.status === "SUSPENDED") {
+    return {
+      title: "MATCH SUSPENDED",
+      detail: "Recorded score is preserved until play resumes.",
+    };
+  }
+
+  if (scorecard.resultStatus === "UNDER_REVIEW") {
+    return {
+      title: "RESULT UNDER REVIEW",
+      detail: "This result is temporarily excluded from standings and statistics.",
+    };
+  }
+
+  if (scorecard.resultStatus === "VOID") {
+    return {
+      title: "RESULT VOIDED",
+      detail: scorecard.resultText ?? "This result does not count in standings or statistics.",
+    };
+  }
+
+  if (scorecard.resultStatus === "SUPERSEDED") {
+    return {
+      title: "RESULT SUPERSEDED",
+      detail: "A rematch has replaced this result.",
+      rematchId: scorecard.supersededByMatchId,
+    };
+  }
+
+  return undefined;
 }
 
 function InningsCard({ innings }: { innings: InningsScorecard }) {

@@ -1,6 +1,9 @@
 package com.eidcricketfest.scoring.service;
 
 import com.eidcricketfest.match.entity.PlayingXiEntry;
+import com.eidcricketfest.match.entity.CricketMatch;
+import com.eidcricketfest.match.repository.CricketMatchRepository;
+import com.eidcricketfest.common.exception.ResourceNotFoundException;
 import com.eidcricketfest.scoring.dto.ScorecardResponse;
 import com.eidcricketfest.scoring.entity.*;
 import com.eidcricketfest.scoring.repository.*;
@@ -18,18 +21,30 @@ public class ScorecardService {
     private final InningsRepository inningsRepository;
     private final DeliveryRepository deliveryRepository;
     private final WicketRepository wicketRepository;
+    private final CricketMatchRepository matchRepository;
 
     public ScorecardService(
             InningsRepository inningsRepository,
             DeliveryRepository deliveryRepository,
-            WicketRepository wicketRepository
+            WicketRepository wicketRepository,
+            CricketMatchRepository matchRepository
     ) {
         this.inningsRepository = inningsRepository;
         this.deliveryRepository = deliveryRepository;
         this.wicketRepository = wicketRepository;
+        this.matchRepository = matchRepository;
     }
 
     public ScorecardResponse getScorecard(Long matchId) {
+
+        CricketMatch match =
+                matchRepository
+                        .findDetailedById(matchId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Match not found"
+                                )
+                        );
 
         List<Innings> inningsList =
                 inningsRepository
@@ -39,6 +54,18 @@ public class ScorecardService {
 
         return new ScorecardResponse(
                 matchId,
+                match.getMatchType(),
+                match.getMatchNumber(),
+                match.getStage(),
+                match.getStatus(),
+                match.getResultStatus(),
+                match.getResultSummary(),
+                match.getRematchOfMatch() != null
+                        ? match.getRematchOfMatch().getId()
+                        : null,
+                match.getSupersededByMatch() != null
+                        ? match.getSupersededByMatch().getId()
+                        : null,
                 inningsList.stream()
                         .map(this::buildInnings)
                         .toList()

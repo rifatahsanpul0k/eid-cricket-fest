@@ -8,12 +8,16 @@ import com.eidcricketfest.award.repository.TournamentPlayerAwardRepository;
 import com.eidcricketfest.common.exception.*;
 import com.eidcricketfest.registration.entity.*;
 import com.eidcricketfest.registration.repository.PlayerRegistrationRepository;
+import com.eidcricketfest.team.entity.*;
+import com.eidcricketfest.team.repository.TeamRosterEntryRepository;
 import com.eidcricketfest.tournament.entity.*;
 import com.eidcricketfest.tournament.repository.TournamentEditionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -23,17 +27,20 @@ public class AwardService {
     private final TournamentEditionRepository editionRepository;
     private final PlayerRegistrationRepository registrationRepository;
     private final UserRepository userRepository;
+    private final TeamRosterEntryRepository rosterEntryRepository;
 
     public AwardService(
             TournamentPlayerAwardRepository awardRepository,
             TournamentEditionRepository editionRepository,
             PlayerRegistrationRepository registrationRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            TeamRosterEntryRepository rosterEntryRepository
     ) {
         this.awardRepository = awardRepository;
         this.editionRepository = editionRepository;
         this.registrationRepository = registrationRepository;
         this.userRepository = userRepository;
+        this.rosterEntryRepository = rosterEntryRepository;
     }
 
     public PlayerAwardResponse assignAward(
@@ -120,8 +127,18 @@ public class AwardService {
                         actor
                 );
 
+        TeamRosterEntry rosterEntry =
+                rosterEntryRepository
+                        .findByTournamentEdition_IdAndPlayerRegistration_IdAndStatus(
+                                editionId,
+                                registration.getId(),
+                                RosterEntryStatus.ACTIVE
+                        )
+                        .orElse(null);
+
         return toResponse(
-                awardRepository.save(award)
+                awardRepository.save(award),
+                rosterEntry
         );
     }
 
@@ -136,15 +153,85 @@ public class AwardService {
             );
         }
 
+        Map<Long, TeamRosterEntry> rosterByRegistration =
+                rosterEntryRepository
+                        .findActiveDetailedByEditionId(
+                                editionId,
+                                RosterEntryStatus.ACTIVE
+                        )
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        entry -> entry
+                                                .getPlayerRegistration()
+                                                .getId(),
+                                        entry -> entry,
+                                        (first, ignored) -> first
+                                )
+                        );
+
         return awardRepository
                 .findDetailedByEditionId(editionId)
                 .stream()
-                .map(this::toResponse)
+                .map(award ->
+                        toResponse(
+                                award,
+                                rosterByRegistration.get(
+                                        award.getPlayerRegistration()
+                                                .getId()
+                                )
+                        )
+                )
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AwardPlayerOptionResponse> getPlayerOptions(
+            Long editionId
+    ) {
+
+        if (!editionRepository.existsById(editionId)) {
+            throw new ResourceNotFoundException(
+                    "Tournament edition not found"
+            );
+        }
+
+        return rosterEntryRepository
+                .findActiveDetailedByEditionId(
+                        editionId,
+                        RosterEntryStatus.ACTIVE
+                )
+                .stream()
+                .map(entry -> {
+                    PlayerRegistration registration =
+                            entry.getPlayerRegistration();
+
+                    return new AwardPlayerOptionResponse(
+                            registration.getId(),
+                            registration.getPlayer().getId(),
+                            registration.getPlayer().getFullName(),
+                            entry.getTournamentTeam().getId(),
+                            entry.getTournamentTeam()
+                                    .getTeam()
+                                    .getName()
+                    );
+                })
                 .toList();
     }
 
     private PlayerAwardResponse toResponse(
             TournamentPlayerAward award
+    ) {
+
+        return toResponse(
+                award,
+                null
+        );
+    }
+
+    private PlayerAwardResponse toResponse(
+            TournamentPlayerAward award,
+            TeamRosterEntry rosterEntry
     ) {
 
         PlayerRegistration registration =
@@ -158,6 +245,15 @@ public class AwardService {
                 registration.getId(),
                 registration.getPlayer().getId(),
                 registration.getPlayer().getFullName(),
+                rosterEntry == null
+                        ? null
+                        : rosterEntry.getTournamentTeam()
+                                .getId(),
+                rosterEntry == null
+                        ? null
+                        : rosterEntry.getTournamentTeam()
+                                .getTeam()
+                                .getName(),
 
                 award.getNotes()
         );

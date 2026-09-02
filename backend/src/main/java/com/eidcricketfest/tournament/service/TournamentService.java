@@ -5,6 +5,7 @@ import com.eidcricketfest.common.exception.ResourceNotFoundException;
 import com.eidcricketfest.tournament.dto.CreateTournamentEditionRequest;
 import com.eidcricketfest.tournament.dto.CreateTournamentRequest;
 import com.eidcricketfest.tournament.dto.TournamentEditionResponse;
+import com.eidcricketfest.tournament.dto.TournamentEditionTeamResponse;
 import com.eidcricketfest.tournament.dto.TournamentResponse;
 import com.eidcricketfest.tournament.dto.UpdateTournamentEditionRequest;
 import com.eidcricketfest.tournament.dto.UpdateTournamentEditionStatusRequest;
@@ -219,7 +220,7 @@ public class TournamentService {
         findTournament(tournamentId);
 
         return editionRepository
-                .findByTournament_IdOrderByCreatedAtDesc(
+                .findDetailedByTournamentIdOrderByCreatedAtDesc(
                         tournamentId
                 )
                 .stream()
@@ -321,8 +322,26 @@ public class TournamentService {
                 edition.getLossPoints(),
 
                 edition.getStatus(),
+                toTeamResponse(edition.getChampionTeam()),
+                toTeamResponse(edition.getRunnerUpTeam()),
+                edition.getFinalMatch() == null
+                        ? null
+                        : edition.getFinalMatch().getId(),
+                edition.getCompletedAt(),
                 edition.getCreatedAt(),
                 edition.getUpdatedAt()
         );
+    }
+
+    private TournamentEditionTeamResponse toTeamResponse(
+            com.eidcricketfest.team.entity.TournamentTeam team
+    ) {
+
+        return team == null
+                ? null
+                : new TournamentEditionTeamResponse(
+                        team.getId(),
+                        team.getTeam().getName()
+                );
     }
 }

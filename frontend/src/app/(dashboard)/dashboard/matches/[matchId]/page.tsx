@@ -3,6 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ShieldAlertIcon } from "lucide-react";
 
+import {
+  AdministrativeHistory,
+  operationFormAction,
+  operationLabel,
+  resultStatusLabel,
+} from "@/components/dashboard/match-administrative-history";
 import { PlayingXiForm } from "@/components/dashboard/playing-xi-form";
 import { ReviewSubmitButton } from "@/components/dashboard/review-submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -182,6 +188,7 @@ export default async function DashboardMatchAdminPage({
           returnTo={returnTo}
           venues={venues.ok ? venues.data : []}
         />
+        <AdministrativeHistory match={match} />
         <div className="grid gap-6 lg:grid-cols-2">
           <SchedulePanel
             action={action}
@@ -363,7 +370,6 @@ function MatchOperationsPanel({
   venues: Venue[];
 }) {
   const operations = match.availableOperations ?? [];
-  const history = match.operationHistory ?? [];
 
   return (
     <section className="rounded-sm border border-white/10 bg-card p-5">
@@ -377,7 +383,9 @@ function MatchOperationsPanel({
           </p>
         </div>
         {match.resultStatus ? (
-          <Badge variant="outline">Result {resultStatusLabel(match.resultStatus)}</Badge>
+          <Badge variant="outline">
+            Result {resultStatusLabel(match.resultStatus)}
+          </Badge>
         ) : null}
       </div>
 
@@ -399,38 +407,6 @@ function MatchOperationsPanel({
           ))}
         </div>
       )}
-
-      {history.length > 0 ? (
-        <div className="mt-6">
-          <h3 className="font-heading text-lg font-bold uppercase tracking-normal">
-            Operation History
-          </h3>
-          <div className="mt-3 divide-y divide-white/10 rounded-sm border border-white/10">
-            {history.map((item) => (
-              <div className="grid gap-2 p-3 text-sm" key={item.id}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium">
-                    {operationLabel(item.operationType)}
-                  </span>
-                  <span className="font-mono text-xs uppercase text-muted-foreground">
-                    {formatBangladeshDateTime(item.createdAt)}
-                  </span>
-                </div>
-                <p className="text-muted-foreground">{item.reason}</p>
-                <p className="text-xs text-muted-foreground">
-                  {item.actorName ?? "System"} changed{" "}
-                  {matchStatusLabel(item.oldStatus)} to{" "}
-                  {matchStatusLabel(item.newStatus)}
-                  {item.relatedMatchId
-                    ? `, related match #${item.relatedMatchId}`
-                    : ""}
-                  .
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -448,12 +424,7 @@ function OperationForm({
   returnTo: string;
   venues: Venue[];
 }) {
-  const formAction =
-    operation === "RESCHEDULE"
-      ? "operation-reschedule"
-      : operation === "ORDER_REMATCH"
-        ? "operation-rematch"
-        : `operation-${operation.toLowerCase().replaceAll("_", "-")}`;
+  const formAction = operationFormAction(operation);
   const needsSchedule =
     operation === "RESCHEDULE" || operation === "ORDER_REMATCH";
 
@@ -539,24 +510,6 @@ function OperationForm({
   );
 }
 
-function operationLabel(
-  operation?: NonNullable<MatchResponse["availableOperations"]>[number] | string
-) {
-  if (operation === "RESET_TOSS") return "Reset Toss";
-  if (operation === "MARK_UNDER_REVIEW") return "Mark Under Review";
-  if (operation === "RESTORE_OFFICIAL") return "Restore Official Result";
-  if (operation === "VOID_RESULT") return "Void Result";
-  if (operation === "ORDER_REMATCH") return "Order Rematch";
-
-  return operation
-    ? operation
-        .toLowerCase()
-        .split("_")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ")
-    : "Operation";
-}
-
 function operationDescription(
   operation: NonNullable<MatchResponse["availableOperations"]>[number]
 ) {
@@ -571,14 +524,6 @@ function operationDescription(
   if (operation === "RESTORE_OFFICIAL") return "Make the reviewed result official again.";
   if (operation === "VOID_RESULT") return "Void the current result from standings and stats.";
   return "Create a fresh fixture linked to this completed match.";
-}
-
-function resultStatusLabel(status: NonNullable<MatchResponse["resultStatus"]>) {
-  return status
-    .toLowerCase()
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function SchedulePanel({

@@ -149,6 +149,35 @@ public interface CricketMatchRepository
             @Param("sourceMatchId") Long sourceMatchId
     );
 
+    @Modifying
+    @Query(value = """
+        UPDATE matches
+        SET team_a_side_id = NULL,
+            team_b_side_id = NULL,
+            winner_side_id = NULL
+        WHERE (
+            source_match_a_id = :sourceMatchId
+            OR source_match_b_id = :sourceMatchId
+        )
+          AND status IN ('PLANNED', 'SCHEDULED', 'READY', 'POSTPONED', 'CANCELLED')
+    """, nativeQuery = true)
+    int detachUnstartedDependents(
+            @Param("sourceMatchId") Long sourceMatchId
+    );
+
+    @Modifying
+    @Query(value = """
+        DELETE FROM matches
+        WHERE (
+            source_match_a_id = :sourceMatchId
+            OR source_match_b_id = :sourceMatchId
+        )
+          AND status IN ('PLANNED', 'SCHEDULED', 'READY', 'POSTPONED', 'CANCELLED')
+    """, nativeQuery = true)
+    int deleteUnstartedDependents(
+            @Param("sourceMatchId") Long sourceMatchId
+    );
+
     @Query("""
         SELECT DISTINCT m
         FROM MatchScorer ms

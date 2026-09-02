@@ -54,4 +54,13 @@ public class AwardController {
     ) {
         return awardService.getAwards(editionId);
     }
+
+    @Operation(summary = "List award recipient options")
+    @GetMapping("/{editionId}/awards/player-options")
+    @SecurityRequirement(name = "bearerAuth")
+    public List<AwardPlayerOptionResponse> playerOptions(
+            @PathVariable Long editionId
+    ) {
+        return awardService.getPlayerOptions(editionId);
+    }
 }

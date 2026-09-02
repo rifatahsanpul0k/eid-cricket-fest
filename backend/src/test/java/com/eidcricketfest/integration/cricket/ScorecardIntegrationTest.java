@@ -8,6 +8,52 @@ class ScorecardIntegrationTest
         extends CricketIntegrationSupport {
 
     @Test
+    void scorecardShouldExposeMatchOperationStateAndKeepRecordedRows() {
+
+        Scenario s =
+                createScenario(2);
+
+        Long inningsId =
+                startFirstInnings(s).id();
+
+        score(
+                s,
+                inningsId,
+                ball(4, 0, 0, 0, 0)
+        );
+
+        jdbcTemplate.update(
+                """
+                UPDATE matches
+                SET status = 'ABANDONED',
+                    result_status = 'OFFICIAL',
+                    result_type = 'NO_RESULT',
+                    result_summary = 'Ground became unsafe'
+                WHERE id = ?
+                """,
+                s.matchId()
+        );
+
+        var scorecard =
+                scorecardService
+                        .getScorecard(
+                                s.matchId()
+                        );
+
+        assertThat(scorecard.status().name())
+                .isEqualTo("ABANDONED");
+
+        assertThat(scorecard.resultText())
+                .isEqualTo("Ground became unsafe");
+
+        assertThat(scorecard.innings())
+                .hasSize(1);
+
+        assertThat(scorecard.innings().get(0).runs())
+                .isEqualTo(4);
+    }
+
+    @Test
     void shouldCalculateBattingAndBowlingFigures() {
 
         Scenario s =

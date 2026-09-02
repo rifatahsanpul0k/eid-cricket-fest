@@ -1,11 +1,21 @@
 package com.eidcricketfest.scoring.dto;
 
+import com.eidcricketfest.match.entity.*;
+
 import java.math.BigDecimal;
 import java.util.List;
 
 public record ScorecardResponse(
 
         Long matchId,
+        MatchType matchType,
+        Integer matchNumber,
+        MatchStage stage,
+        MatchStatus status,
+        MatchResultStatus resultStatus,
+        String resultText,
+        Long rematchOfMatchId,
+        Long supersededByMatchId,
         List<InningsScorecard> innings
 
 ) {

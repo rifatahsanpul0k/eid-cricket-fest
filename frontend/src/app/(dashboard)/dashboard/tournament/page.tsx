@@ -3,11 +3,18 @@ import Link from "next/link";
 import { ShieldAlertIcon } from "lucide-react";
 
 import { ReviewSubmitButton } from "@/components/dashboard/review-submit-button";
+import { TournamentFinalization } from "@/components/dashboard/tournament-finalization";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  getAwards,
+  type AwardPlayerOption,
+  type PlayerAward,
+} from "@/lib/api/awards";
 import { getSession } from "@/lib/auth/session";
 import { getDashboardRoleLabel, hasOrganizerAccess } from "@/lib/dashboard/roles";
 import { lifecycleActions } from "@/lib/dashboard/tournament-lifecycle";
+import { getAwardPlayerOptionsForDashboard } from "@/lib/dashboard/tournament-admin-api";
 import {
   getTournamentEditions,
   getTournaments,
@@ -26,6 +33,10 @@ type TournamentPageProps = {
 };
 
 type TournamentWithId = Tournament & { id: number };
+type EditionAwardData = {
+  awards: PlayerAward[];
+  options: AwardPlayerOption[];
+};
 
 export default async function DashboardTournamentPage({
   searchParams,
@@ -53,6 +64,9 @@ export default async function DashboardTournamentPage({
     return <Unavailable message={problemText(editions.error)} />;
   }
 
+  const awardDataByEditionId =
+    editions?.ok ? await getEditionAwardData(editions.data) : new Map();
+
   return (
     <main className="flex-1">
       <DashboardHeader
@@ -74,6 +88,7 @@ export default async function DashboardTournamentPage({
             <TournamentSummary tournament={tournament} />
             {editions?.data.length ? (
               <EditionList
+                awardDataByEditionId={awardDataByEditionId}
                 editions={editions.data}
                 tournamentId={tournament.id}
               />
@@ -130,9 +145,11 @@ function TournamentSummary({
 }
 
 function EditionList({
+  awardDataByEditionId,
   editions,
   tournamentId,
 }: {
+  awardDataByEditionId: Map<number, EditionAwardData>;
   editions: TournamentEdition[];
   tournamentId: number;
 }) {
@@ -142,6 +159,7 @@ function EditionList({
       {editions.map((edition) =>
         edition.id ? (
           <EditionPanel
+            awardData={awardDataByEditionId.get(edition.id)}
             edition={edition}
             key={edition.id}
             tournamentId={tournamentId}
@@ -171,9 +189,11 @@ function CreateEditionForm({
 }
 
 function EditionPanel({
+  awardData,
   edition,
   tournamentId,
 }: {
+  awardData?: EditionAwardData;
   edition: TournamentEdition;
   tournamentId: number;
 }) {
@@ -195,6 +215,7 @@ function EditionPanel({
       </div>
 
       <EditionFacts edition={edition} />
+      <TournamentFinalization awardData={awardData} edition={edition} />
 
       {readOnly ? (
         <p className="rounded-sm border border-white/10 bg-background p-3 text-sm text-muted-foreground">
@@ -229,6 +250,7 @@ function EditionPanel({
           ))}
         </div>
       ) : null}
+
     </article>
   );
 }
@@ -561,6 +583,32 @@ function selectTournament(
       tournament.name?.toLowerCase().includes("eid cricket fest")
     ) ?? selectable[0]
   );
+}
+
+async function getEditionAwardData(editions: TournamentEdition[]) {
+  const completedEditions = editions.filter(
+    (edition): edition is TournamentEdition & { id: number } =>
+      edition.id !== undefined && edition.status === "COMPLETED"
+  );
+
+  const entries = await Promise.all(
+    completedEditions.map(async (edition) => {
+      const [awards, options] = await Promise.all([
+        getAwards(edition.id),
+        getAwardPlayerOptionsForDashboard(edition.id),
+      ]);
+
+      return [
+        edition.id,
+        {
+          awards: awards.ok ? awards.data : [],
+          options: options.ok ? options.data : [],
+        },
+      ] as const;
+    })
+  );
+
+  return new Map(entries);
 }
 
 function defaultEditionValues(): Partial<TournamentEdition> {

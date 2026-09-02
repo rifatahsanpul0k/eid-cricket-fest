@@ -65,6 +65,22 @@ public interface TeamRosterEntryRepository
             @Param("status") RosterEntryStatus status
     );
 
+    @Query("""
+        SELECT tre
+        FROM TeamRosterEntry tre
+        JOIN FETCH tre.tournamentTeam tt
+        JOIN FETCH tt.team
+        JOIN FETCH tre.playerRegistration pr
+        JOIN FETCH pr.player p
+        WHERE tre.tournamentEdition.id = :editionId
+          AND tre.status = :status
+        ORDER BY tt.team.name, p.fullName
+    """)
+    List<TeamRosterEntry> findActiveDetailedByEditionId(
+            @Param("editionId") Long editionId,
+            @Param("status") RosterEntryStatus status
+    );
+
     long countByTournamentTeam_IdAndStatus(
             Long tournamentTeamId,
             RosterEntryStatus status

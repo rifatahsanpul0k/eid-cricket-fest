@@ -5,6 +5,7 @@ import type { UpdateTournamentEditionStatusRequest } from "@/lib/api/schema-help
 import { formValue, problemMessage } from "@/lib/auth/forms";
 import { assertSameOriginRequest } from "@/lib/auth/origin";
 import {
+  assignTournamentAward,
   createTournament,
   createTournamentEdition,
   transitionTournamentEditionStatus,
@@ -27,6 +28,8 @@ export async function POST(request: NextRequest) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/tournament");
   revalidatePath("/register");
+  revalidatePath("/awards");
+  revalidatePath("/history");
   revalidatePath("/account/registration");
 
   if (!result.ok) {
@@ -73,6 +76,15 @@ async function handleTournamentAction(action: string, formData: FormData) {
           formValue(formData, "status") as UpdateTournamentEditionStatusRequest["status"],
       }
     );
+  }
+
+  if (action === "assign-award") {
+    return assignTournamentAward(numberValue(formData, "editionId"), {
+      awardType: formValue(formData, "awardType") as never,
+      notes: optionalValue(formData, "notes"),
+      registrationId: numberValue(formData, "registrationId"),
+      title: optionalValue(formData, "title"),
+    });
   }
 
   return {

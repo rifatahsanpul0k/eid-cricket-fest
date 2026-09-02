@@ -5,10 +5,8 @@ import com.eidcricketfest.award.service.AwardService;
 import com.eidcricketfest.common.exception.ResourceNotFoundException;
 import com.eidcricketfest.history.dto.TournamentHistoryResponse;
 import com.eidcricketfest.match.entity.CricketMatch;
-import com.eidcricketfest.match.repository.CricketMatchRepository;
 import com.eidcricketfest.statistics.dto.TournamentStatisticsResponse;
 import com.eidcricketfest.statistics.service.StatisticsService;
-import com.eidcricketfest.team.entity.TournamentTeam;
 import com.eidcricketfest.tournament.entity.*;
 import com.eidcricketfest.tournament.repository.*;
 import org.springframework.stereotype.Service;
@@ -22,20 +20,17 @@ public class TournamentHistoryService {
 
     private final TournamentRepository tournamentRepository;
     private final TournamentEditionRepository editionRepository;
-    private final CricketMatchRepository matchRepository;
     private final StatisticsService statisticsService;
     private final AwardService awardService;
 
     public TournamentHistoryService(
             TournamentRepository tournamentRepository,
             TournamentEditionRepository editionRepository,
-            CricketMatchRepository matchRepository,
             StatisticsService statisticsService,
             AwardService awardService
     ) {
         this.tournamentRepository = tournamentRepository;
         this.editionRepository = editionRepository;
-        this.matchRepository = matchRepository;
         this.statisticsService = statisticsService;
         this.awardService = awardService;
     }
@@ -54,7 +49,7 @@ public class TournamentHistoryService {
 
         List<TournamentEdition> editions =
                 editionRepository
-                        .findByTournament_IdAndStatusOrderByEndDateDesc(
+                        .findDetailedByTournamentIdAndStatusOrderByEndDateDesc(
                                 tournamentId,
                                 TournamentEditionStatus.COMPLETED
                         );
@@ -75,39 +70,29 @@ public class TournamentHistoryService {
             TournamentEdition edition
     ) {
 
-        CricketMatch finalMatch =
-                matchRepository
-                        .findFinalByEditionId(
-                                edition.getId()
-                        )
-                        .orElse(null);
-
         TournamentHistoryResponse.Team champion = null;
         TournamentHistoryResponse.Team runnerUp = null;
 
-        if (finalMatch != null
-                && finalMatch.getWinnerTeam() != null) {
+        CricketMatch finalMatch =
+                edition.getFinalMatch();
 
-            TournamentTeam winner =
-                    finalMatch.getWinnerTeam();
-
-            TournamentTeam loser =
-                    finalMatch.getTeamA()
-                            .getId()
-                            .equals(winner.getId())
-                            ? finalMatch.getTeamB()
-                            : finalMatch.getTeamA();
-
+        if (edition.getChampionTeam() != null) {
             champion =
                     new TournamentHistoryResponse.Team(
-                            winner.getId(),
-                            winner.getTeam().getName()
+                            edition.getChampionTeam().getId(),
+                            edition.getChampionTeam()
+                                    .getTeam()
+                                    .getName()
                     );
+        }
 
+        if (edition.getRunnerUpTeam() != null) {
             runnerUp =
                     new TournamentHistoryResponse.Team(
-                            loser.getId(),
-                            loser.getTeam().getName()
+                            edition.getRunnerUpTeam().getId(),
+                            edition.getRunnerUpTeam()
+                                    .getTeam()
+                                    .getName()
                     );
         }
 
