@@ -66,6 +66,8 @@ export type KnockoutBracketResponse =
   components["schemas"]["KnockoutBracketResponse"];
 export type UserOptionResponse = components["schemas"]["UserOptionResponse"];
 export type LiveMatchResponse = components["schemas"]["LiveMatchResponse"];
+export type LiveCentreMatchResponse =
+  components["schemas"]["LiveCentreMatchResponse"];
 export type InningsResponse = components["schemas"]["InningsResponse"];
 export type StartInningsRequest =
   components["schemas"]["StartInningsRequest"];

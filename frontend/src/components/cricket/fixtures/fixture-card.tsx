@@ -15,8 +15,14 @@ export function FixtureCard({ match }: { match: Match }) {
     <article className="grid gap-4 rounded-sm border border-white/10 bg-card p-4 md:grid-cols-[1fr_auto] md:items-center">
       <div>
         <div className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase text-muted-foreground">
-          <span>Match {match.matchNumber ?? "-"}</span>
-          <span>{matchStageLabel(match.stage)}</span>
+          {match.matchType === "FRIENDLY" ? (
+            <span>Friendly</span>
+          ) : (
+            <>
+              <span>Match {match.matchNumber ?? "-"}</span>
+              <span>{matchStageLabel(match.stage)}</span>
+            </>
+          )}
           <span className="rounded-sm bg-surface-elevated px-2 py-1 text-foreground">
             {matchStatusLabel(match.status)}
           </span>

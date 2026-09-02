@@ -1,6 +1,7 @@
 package com.eidcricketfest.scoring.controller;
 
 import com.eidcricketfest.scoring.dto.*;
+import com.eidcricketfest.scoring.service.LiveCentreService;
 import com.eidcricketfest.scoring.service.LiveScoreService;
 import com.eidcricketfest.scoring.service.ScorecardService;
 import com.eidcricketfest.scoring.service.ScoringService;
@@ -21,15 +22,18 @@ public class ScoringController {
 
     private final ScoringService scoringService;
     private final LiveScoreService liveScoreService;
+    private final LiveCentreService liveCentreService;
     private final ScorecardService scorecardService;
 
     public ScoringController(
             ScoringService scoringService,
             LiveScoreService liveScoreService,
+            LiveCentreService liveCentreService,
             ScorecardService scorecardService
     ) {
         this.scoringService = scoringService;
         this.liveScoreService = liveScoreService;
+        this.liveCentreService = liveCentreService;
         this.scorecardService = scorecardService;
     }
 
@@ -143,6 +147,12 @@ public class ScoringController {
             @PathVariable Long matchId
     ) {
         return liveScoreService.getLiveMatch(matchId);
+    }
+
+    @Operation(summary = "Get public live centre matches")
+    @GetMapping("/matches/live-centre")
+    public List<LiveCentreMatchResponse> liveCentre() {
+        return liveCentreService.getLiveCentreMatches();
     }
 
     @Operation(summary = "Get match scorecard")

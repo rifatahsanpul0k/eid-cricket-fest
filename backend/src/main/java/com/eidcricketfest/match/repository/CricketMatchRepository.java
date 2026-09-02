@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 
 public interface CricketMatchRepository
         extends JpaRepository<CricketMatch, Long>,
@@ -260,4 +261,40 @@ public interface CricketMatchRepository
         ORDER BY m.scheduledAt NULLS LAST, m.createdAt DESC
     """)
     List<CricketMatch> findDetailedFriendlyMatches();
+
+    @Query("""
+        SELECT DISTINCT m
+        FROM CricketMatch m
+        LEFT JOIN FETCH m.tournamentEdition
+        LEFT JOIN FETCH m.teamA a
+        LEFT JOIN FETCH a.team
+        LEFT JOIN FETCH m.teamB b
+        LEFT JOIN FETCH b.team
+        LEFT JOIN FETCH m.teamASide asd
+        LEFT JOIN FETCH asd.tournamentTeam astt
+        LEFT JOIN FETCH astt.team
+        LEFT JOIN FETCH m.teamBSide bsd
+        LEFT JOIN FETCH bsd.tournamentTeam bstt
+        LEFT JOIN FETCH bstt.team
+        LEFT JOIN FETCH m.venue
+        LEFT JOIN FETCH m.winnerSide ws
+        LEFT JOIN FETCH ws.tournamentTeam wst
+        LEFT JOIN FETCH wst.team
+        LEFT JOIN FETCH m.rematchOfMatch
+        LEFT JOIN FETCH m.supersededByMatch
+        WHERE m.status IN (
+            com.eidcricketfest.match.entity.MatchStatus.TOSS_COMPLETED,
+            com.eidcricketfest.match.entity.MatchStatus.LIVE,
+            com.eidcricketfest.match.entity.MatchStatus.INNINGS_BREAK,
+            com.eidcricketfest.match.entity.MatchStatus.SUSPENDED
+        )
+        OR (
+            m.status = com.eidcricketfest.match.entity.MatchStatus.COMPLETED
+            AND m.actualEndedAt >= :completedSince
+        )
+        ORDER BY m.scheduledAt DESC NULLS LAST, m.matchNumber DESC
+    """)
+    List<CricketMatch> findLiveCentreMatches(
+            @Param("completedSince") Instant completedSince
+    );
 }

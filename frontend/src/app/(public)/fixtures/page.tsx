@@ -5,7 +5,7 @@ import { DataUnavailable } from "@/components/cricket/data-unavailable";
 import { FixtureCard } from "@/components/cricket/fixtures/fixture-card";
 import { FixtureFilterNav } from "@/components/cricket/fixtures/fixture-filter-nav";
 import { PaginationNav } from "@/components/cricket/fixtures/pagination-nav";
-import { getMatchesPage } from "@/lib/api/matches";
+import { getFriendlyMatches, getMatchesPage } from "@/lib/api/matches";
 import {
   parseMatchStage,
   parseMatchStatus,
@@ -45,14 +45,17 @@ export default async function FixturesPage({
     );
   }
 
-  const matches = await getMatchesPage(currentEdition.edition.id, {
-    direction: "asc",
-    page,
-    size: 12,
-    sortBy: "scheduledAt",
-    stage,
-    status,
-  });
+  const [matches, friendlyMatches] = await Promise.all([
+    getMatchesPage(currentEdition.edition.id, {
+      direction: "asc",
+      page,
+      size: 12,
+      sortBy: "scheduledAt",
+      stage,
+      status,
+    }),
+    getFriendlyMatches(),
+  ]);
 
   return (
     <main>
@@ -61,6 +64,9 @@ export default async function FixturesPage({
         <FixtureFilterNav stage={stage} status={status} />
         {matches.ok ? (
           <>
+            <h2 className="mt-6 font-heading text-2xl font-semibold uppercase tracking-normal">
+              Tournament Fixtures
+            </h2>
             <div className="mt-6 grid gap-4">
               {(matches.data.content ?? []).length > 0 ? (
                 matches.data.content?.map((match) => (
@@ -84,6 +90,18 @@ export default async function FixturesPage({
         ) : (
           <DataUnavailable message={matches.error.detail ?? matches.error.title} />
         )}
+        {friendlyMatches.ok && friendlyMatches.data.length > 0 ? (
+          <section className="mt-10">
+            <h2 className="font-heading text-2xl font-semibold uppercase tracking-normal">
+              Friendly Matches
+            </h2>
+            <div className="mt-6 grid gap-4">
+              {friendlyMatches.data.map((match) => (
+                <FixtureCard key={match.id} match={match} />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </section>
     </main>
   );

@@ -593,6 +593,10 @@ public class CricketMatch extends BaseEntity {
         return scheduledAt;
     }
 
+    public Instant getActualEndedAt() {
+        return actualEndedAt;
+    }
+
     public Integer getOversPerInnings() {
         return oversPerInnings;
     }

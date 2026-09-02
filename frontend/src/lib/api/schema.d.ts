@@ -366,6 +366,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/matches/{matchId}/operations/void-result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void result */
+        post: operations["voidResult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend match */
+        post: operations["suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark result under review */
+        post: operations["review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume match */
+        post: operations["resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/restore-result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore official result */
+        post: operations["restoreResult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/reset-toss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset match toss */
+        post: operations["resetToss"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/rematch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Order rematch */
+        post: operations["rematch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/postpone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Postpone match */
+        post: operations["postpone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel match */
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/abandon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abandon match */
+        post: operations["abandon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/matches/{matchId}/innings": {
         parameters: {
             query?: never;
@@ -411,6 +581,24 @@ export interface paths {
         put?: never;
         /** Undo latest delivery */
         post: operations["undo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/friendly-matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List friendly matches */
+        get: operations["friendlyMatches"];
+        put?: never;
+        /** Create friendly match */
+        post: operations["createFriendlyMatch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -691,6 +879,23 @@ export interface paths {
         head?: never;
         /** Schedule match */
         patch: operations["scheduleMatch"];
+        trace?: never;
+    };
+    "/api/v1/matches/{matchId}/operations/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Reschedule match */
+        patch: operations["reschedule"];
         trace?: never;
     };
     "/api/v1/matches/{matchId}/no-result": {
@@ -1070,6 +1275,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/matches/{matchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get match */
+        get: operations["getMatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/matches/{matchId}/setup": {
         parameters: {
             query?: never;
@@ -1113,6 +1335,40 @@ export interface paths {
         };
         /** Get live match state */
         get: operations["live"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/matches/live-centre": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get public live centre matches */
+        get: operations["liveCentre"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/friendly-matches/player-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List friendly match player options */
+        get: operations["friendlyPlayerOptions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1361,6 +1617,29 @@ export interface components {
             /** Format: int64 */
             venueId?: number;
         };
+        MatchOperationHistoryResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            operationType?: "RESCHEDULE" | "POSTPONE" | "SUSPEND" | "RESUME" | "ABANDON" | "CANCEL" | "RESET_TOSS" | "MARK_UNDER_REVIEW" | "RESTORE_OFFICIAL" | "VOID_RESULT" | "ORDER_REMATCH";
+            /** Format: int64 */
+            actorUserId?: number;
+            actorName?: string;
+            reason?: string;
+            /** @enum {string} */
+            oldStatus?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            /** @enum {string} */
+            newStatus?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            /** @enum {string} */
+            oldResultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
+            /** @enum {string} */
+            newResultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
+            metadata?: string;
+            /** Format: int64 */
+            relatedMatchId?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         MatchResponse: {
             /** Format: int64 */
             id?: number;
@@ -1394,56 +1673,12 @@ export interface components {
             availableOperations?: ("RESCHEDULE" | "POSTPONE" | "SUSPEND" | "RESUME" | "ABANDON" | "CANCEL" | "RESET_TOSS" | "MARK_UNDER_REVIEW" | "RESTORE_OFFICIAL" | "VOID_RESULT" | "ORDER_REMATCH")[];
             operationHistory?: components["schemas"]["MatchOperationHistoryResponse"][];
         };
-        MatchOperationHistoryResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** @enum {string} */
-            operationType?: "RESCHEDULE" | "POSTPONE" | "SUSPEND" | "RESUME" | "ABANDON" | "CANCEL" | "RESET_TOSS" | "MARK_UNDER_REVIEW" | "RESTORE_OFFICIAL" | "VOID_RESULT" | "ORDER_REMATCH";
-            /** Format: int64 */
-            actorUserId?: number;
-            actorName?: string;
-            reason?: string;
-            /** @enum {string} */
-            oldStatus?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
-            /** @enum {string} */
-            newStatus?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
-            /** @enum {string} */
-            oldResultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
-            /** @enum {string} */
-            newResultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
-            metadata?: string;
-            /** Format: int64 */
-            relatedMatchId?: number;
-            /** Format: date-time */
-            createdAt?: string;
-        };
         MatchTeamInfo: {
             /** Format: int64 */
             matchSideId?: number;
             /** Format: int64 */
             tournamentTeamId?: number;
             name?: string;
-        };
-        CreateFriendlyMatchRequest: {
-            teamAName: string;
-            teamBName: string;
-            teamAPlayerIds: number[];
-            teamBPlayerIds: number[];
-            /** Format: int32 */
-            oversPerInnings: number;
-            /** Format: date-time */
-            scheduledAt?: string;
-            /** Format: int64 */
-            venueId: number;
-        };
-        FriendlyPlayerOptionResponse: {
-            /** Format: int64 */
-            playerId?: number;
-            fullName?: string;
-            photoUrl?: string;
-            primaryCategory?: string;
-            battingStyle?: string;
-            bowlingStyle?: string;
         };
         VenueInfo: {
             /** Format: int64 */
@@ -1594,6 +1829,18 @@ export interface components {
             scorerUserId: number;
             primary?: boolean;
         };
+        MatchOperationReasonRequest: {
+            reason: string;
+        };
+        OrderRematchRequest: {
+            reason: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: int64 */
+            venueId?: number;
+            /** Format: int32 */
+            oversPerInnings?: number;
+        };
         StartInningsRequest: {
             /** Format: int64 */
             strikerPlayingXiId: number;
@@ -1632,6 +1879,18 @@ export interface components {
             /** Format: uuid */
             clientEventId: string;
             reason: string;
+        };
+        CreateFriendlyMatchRequest: {
+            teamAName: string;
+            teamBName: string;
+            teamAPlayerIds: number[];
+            teamBPlayerIds: number[];
+            /** Format: int32 */
+            oversPerInnings: number;
+            /** Format: date-time */
+            scheduledAt: string;
+            /** Format: int64 */
+            venueId: number;
         };
         DraftPickRequest: {
             /** Format: int64 */
@@ -1724,15 +1983,6 @@ export interface components {
             /** Format: int32 */
             oversPerInnings?: number;
             reason: string;
-        };
-        OrderRematchRequest: {
-            reason: string;
-            /** Format: date-time */
-            scheduledAt?: string;
-            /** Format: int64 */
-            venueId?: number;
-            /** Format: int32 */
-            oversPerInnings?: number;
         };
         NoResultRequest: {
             reason: string;
@@ -2268,6 +2518,82 @@ export interface components {
             /** Format: int64 */
             matchId?: number;
             innings?: components["schemas"]["InningsScorecard"][];
+        };
+        InningsSummary: {
+            /** Format: int64 */
+            inningsId?: number;
+            /** Format: int32 */
+            inningsNumber?: number;
+            battingTeam?: string;
+            bowlingTeam?: string;
+            /** Format: int32 */
+            runs?: number;
+            /** Format: int32 */
+            wickets?: number;
+            overs?: string;
+            /** Format: int32 */
+            target?: number;
+            /** Format: int32 */
+            runsRequired?: number;
+            /** Format: int32 */
+            ballsRemaining?: number;
+            currentRunRate?: number;
+            requiredRunRate?: number;
+            striker?: components["schemas"]["PlayerInfo"];
+            nonStriker?: components["schemas"]["PlayerInfo"];
+            bowler?: components["schemas"]["PlayerInfo"];
+        };
+        LiveCentreMatchResponse: {
+            /** Format: int64 */
+            matchId?: number;
+            /** @enum {string} */
+            matchType?: "TOURNAMENT" | "FRIENDLY";
+            /** @enum {string} */
+            status?: "PLANNED" | "SCHEDULED" | "READY" | "TOSS_COMPLETED" | "LIVE" | "INNINGS_BREAK" | "SUSPENDED" | "COMPLETED" | "POSTPONED" | "ABANDONED" | "CANCELLED";
+            /** Format: int32 */
+            matchNumber?: number;
+            /** @enum {string} */
+            stage?: "LEAGUE" | "SEMI_FINAL" | "FINAL" | "OTHER";
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** Format: int32 */
+            oversPerInnings?: number;
+            /** @enum {string} */
+            resultStatus?: "OFFICIAL" | "UNDER_REVIEW" | "VOID" | "SUPERSEDED";
+            /** Format: int64 */
+            rematchOfMatchId?: number;
+            /** Format: int64 */
+            supersededByMatchId?: number;
+            teamA?: components["schemas"]["SideInfo"];
+            teamB?: components["schemas"]["SideInfo"];
+            venue?: components["schemas"]["VenueInfo"];
+            toss?: components["schemas"]["TossInfo"];
+            innings?: components["schemas"]["InningsSummary"];
+            resultText?: string;
+            winner?: components["schemas"]["SideInfo"];
+        };
+        SideInfo: {
+            /** Format: int64 */
+            matchSideId?: number;
+            /** Format: int64 */
+            tournamentTeamId?: number;
+            name?: string;
+        };
+        TossInfo: {
+            /** Format: int64 */
+            winnerMatchSideId?: number;
+            winnerName?: string;
+            /** @enum {string} */
+            decision?: "BAT" | "BOWL";
+        };
+        FriendlyPlayerOptionResponse: {
+            /** Format: int64 */
+            playerId?: number;
+            fullName?: string;
+            photoUrl?: string;
+            primaryCategory?: string;
+            battingStyle?: string;
+            bowlingStyle?: string;
         };
     };
     responses: never;
@@ -2994,6 +3320,266 @@ export interface operations {
             };
         };
     };
+    voidResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    resume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    restoreResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    resetToss: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    rematch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderRematchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    postpone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    abandon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOperationReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
     startInnings: {
         parameters: {
             query?: never;
@@ -3068,6 +3654,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InningsResponse"];
+                };
+            };
+        };
+    };
+    friendlyMatches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"][];
+                };
+            };
+        };
+    };
+    createFriendlyMatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateFriendlyMatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
                 };
             };
         };
@@ -3467,6 +4097,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ScheduleMatchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
+    reschedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescheduleMatchOperationRequest"];
             };
         };
         responses: {
@@ -3991,6 +4647,28 @@ export interface operations {
             };
         };
     };
+    getMatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                matchId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchResponse"];
+                };
+            };
+        };
+    };
     setupDetails: {
         parameters: {
             query?: never;
@@ -4053,6 +4731,46 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LiveMatchResponse"];
+                };
+            };
+        };
+    };
+    liveCentre: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LiveCentreMatchResponse"][];
+                };
+            };
+        };
+    };
+    friendlyPlayerOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FriendlyPlayerOptionResponse"][];
                 };
             };
         };

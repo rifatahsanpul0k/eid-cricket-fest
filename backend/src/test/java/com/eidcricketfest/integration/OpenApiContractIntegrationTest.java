@@ -103,6 +103,9 @@ class OpenApiContractIntegrationTest
         assertThat(paths.has("/api/v1/matches/{matchId}/live"))
                 .isTrue();
 
+        assertThat(paths.has("/api/v1/matches/live-centre"))
+                .isTrue();
+
         assertThat(paths.has("/api/v1/matches/{matchId}/scorecard"))
                 .isTrue();
 
@@ -117,6 +120,11 @@ class OpenApiContractIntegrationTest
 
         assertThat(hasBearerRequirement(
                 paths.path("/api/v1/matches/{matchId}/live")
+                        .path("get")
+        )).isFalse();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/matches/live-centre")
                         .path("get")
         )).isFalse();
 

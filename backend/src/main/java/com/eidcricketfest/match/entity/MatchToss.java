@@ -77,6 +77,10 @@ public class MatchToss {
         return winnerTeam;
     }
 
+    public CricketMatch getMatch() {
+        return match;
+    }
+
     public MatchSide getWinnerSide() {
         return winnerSide;
     }

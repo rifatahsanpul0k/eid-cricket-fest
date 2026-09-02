@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
   const result = await createFriendlyMatch({
     oversPerInnings: numberValue(formData, "oversPerInnings"),
-    scheduledAt: instantValue(formData, "scheduledAt"),
+    scheduledAt: instantValue(formData, "scheduledAt") ?? "",
     teamAName: formValue(formData, "teamAName"),
     teamAPlayerIds,
     teamBName: formValue(formData, "teamBName"),

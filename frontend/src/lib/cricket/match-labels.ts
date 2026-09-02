@@ -23,7 +23,12 @@ export const MATCH_STAGE_LABELS: Record<MatchStage, string> = {
   OTHER: "Other",
 };
 
-const ACTIVE_STATUSES = new Set<MatchStatus>(["LIVE", "INNINGS_BREAK"]);
+const LIVE_ROUTE_STATUSES = new Set<MatchStatus>([
+  "TOSS_COMPLETED",
+  "LIVE",
+  "INNINGS_BREAK",
+  "SUSPENDED",
+]);
 
 export function matchStatusLabel(status?: Match["status"]) {
   return status ? MATCH_STATUS_LABELS[status] : "Fixture";
@@ -34,7 +39,7 @@ export function matchStageLabel(stage?: Match["stage"]) {
 }
 
 export function isActiveMatchStatus(status?: Match["status"]) {
-  return status ? ACTIVE_STATUSES.has(status) : false;
+  return status ? LIVE_ROUTE_STATUSES.has(status) : false;
 }
 
 export function matchAction(match: Match) {
@@ -44,7 +49,7 @@ export function matchAction(match: Match) {
 
   if (isActiveMatchStatus(match.status)) {
     return {
-      label: "Follow Live",
+      label: match.status === "TOSS_COMPLETED" ? "Match Centre" : "Follow Live",
       href: `/matches/${match.id}/live`,
     };
   }

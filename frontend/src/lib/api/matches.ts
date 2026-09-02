@@ -4,6 +4,8 @@ import type { components } from "@/lib/api/schema";
 
 export type Match = components["schemas"]["MatchResponse"];
 export type LiveMatch = components["schemas"]["LiveMatchResponse"];
+export type LiveCentreMatch =
+  components["schemas"]["LiveCentreMatchResponse"];
 export type MatchPage = components["schemas"]["PageResponseMatchResponse"];
 export type MatchStage = NonNullable<Match["stage"]>;
 export type MatchStatus = NonNullable<Match["status"]>;
@@ -101,6 +103,58 @@ export async function getLiveMatch(
           },
         },
       }
+    );
+
+    if (data) {
+      return {
+        ok: true,
+        data,
+      };
+    }
+
+    return {
+      ok: false,
+      error: problemError(error, response.status),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: networkError(error),
+    };
+  }
+}
+
+export async function getLiveCentreMatches(): Promise<
+  ApiResult<LiveCentreMatch[]>
+> {
+  try {
+    const { data, error, response } = await createApiClient().GET(
+      "/api/v1/matches/live-centre"
+    );
+
+    if (data) {
+      return {
+        ok: true,
+        data,
+      };
+    }
+
+    return {
+      ok: false,
+      error: problemError(error, response.status),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: networkError(error),
+    };
+  }
+}
+
+export async function getFriendlyMatches(): Promise<ApiResult<Match[]>> {
+  try {
+    const { data, error, response } = await createApiClient().GET(
+      "/api/v1/friendly-matches"
     );
 
     if (data) {

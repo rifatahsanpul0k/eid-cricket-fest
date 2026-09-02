@@ -467,6 +467,7 @@ public class SecurityConfig {
                         // Public live scores
                         .requestMatchers(
                                 HttpMethod.GET,
+                                "/api/v1/matches/live-centre",
                                 "/api/v1/matches/*/live",
                                 "/api/v1/matches/*/scorecard"
                         ).permitAll()
