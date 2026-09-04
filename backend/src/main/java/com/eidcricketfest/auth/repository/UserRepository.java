@@ -16,6 +16,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByPhone(String phone);
 
+    boolean existsByRoles_Code(RoleCode role);
+
     @EntityGraph(attributePaths = "roles")
     @Query("""
         SELECT u

@@ -25,11 +25,11 @@ export default async function HomePage() {
 
   return (
     <main>
-      <TournamentHero tournament={data.tournament} edition={data.edition} />
+      <TournamentHero edition={data.edition} />
       <LiveMatchCard liveMatch={data.liveMatch} />
       <UpcomingMatches matches={data.upcomingMatches} />
       <StandingsPreview standings={data.standings} />
-      <TournamentInfo tournament={data.tournament} edition={data.edition} />
+      <TournamentInfo edition={data.edition} />
       <RegistrationCta edition={data.edition} />
     </main>
   );

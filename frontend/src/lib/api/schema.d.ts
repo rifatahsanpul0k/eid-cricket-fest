@@ -1394,6 +1394,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/bootstrap-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bootstrap first admin account */
+        post: operations["bootstrapAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2650,6 +2667,13 @@ export interface components {
             /** Format: int64 */
             tournamentTeamId?: number;
             teamName?: string;
+        };
+        BootstrapAdminRequest: {
+            bootstrapToken: string;
+            displayName: string;
+            /** Format: email */
+            email: string;
+            password: string;
         };
     };
     responses: never;
@@ -4849,6 +4873,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AwardPlayerOptionResponse"][];
+                };
+            };
+        };
+    };
+    bootstrapAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BootstrapAdminRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AuthResponse"];
                 };
             };
         };

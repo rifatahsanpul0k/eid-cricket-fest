@@ -4,12 +4,16 @@ import com.eidcricketfest.auth.dto.*;
 import com.eidcricketfest.auth.entity.*;
 import com.eidcricketfest.auth.repository.*;
 import com.eidcricketfest.common.exception.ConflictException;
+import com.eidcricketfest.common.exception.ForbiddenException;
 import com.eidcricketfest.common.exception.UnauthorizedException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -26,6 +30,7 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final String bootstrapAdminToken;
 
     public AuthService(
             UserRepository userRepository,
@@ -33,7 +38,8 @@ public class AuthService {
             RefreshTokenRepository refreshTokenRepository,
             RefreshTokenRevocationService refreshTokenRevocationService,
             PasswordEncoder passwordEncoder,
-            TokenService tokenService
+            TokenService tokenService,
+            @Value("${app.bootstrap.admin-token:}") String bootstrapAdminToken
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -43,6 +49,9 @@ public class AuthService {
                 refreshTokenRevocationService;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
+        this.bootstrapAdminToken = bootstrapAdminToken == null
+                ? ""
+                : bootstrapAdminToken;
     }
 
     public AuthResponse register(
@@ -92,6 +101,47 @@ public class AuthService {
         user = userRepository.save(user);
 
         return createNewSession(user);
+    }
+
+    public AuthResponse bootstrapAdmin(
+            BootstrapAdminRequest request
+    ) {
+
+        if (bootstrapAdminToken.isBlank()) {
+            throw new ForbiddenException(
+                    "Admin bootstrap is not configured"
+            );
+        }
+
+        if (!tokensMatch(
+                bootstrapAdminToken,
+                request.bootstrapToken()
+        )) {
+            throw new ForbiddenException(
+                    "Invalid admin bootstrap token"
+            );
+        }
+
+        return createNewSession(
+                createBootstrapAdminAccount(
+                        request.displayName(),
+                        request.email(),
+                        request.password()
+                )
+        );
+    }
+
+    public void bootstrapConfiguredAdmin(
+            String displayName,
+            String email,
+            String password
+    ) {
+
+        createBootstrapAdminAccount(
+                displayName,
+                email,
+                password
+        );
     }
 
     public AuthResponse login(
@@ -264,6 +314,75 @@ public class AuthService {
                 user,
                 accessToken,
                 rawRefreshToken
+        );
+    }
+
+    private Role requireRole(RoleCode roleCode) {
+        return roleRepository
+                .findByCode(roleCode)
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                roleCode + " role is missing"
+                        )
+                );
+    }
+
+    private User createBootstrapAdminAccount(
+            String displayName,
+            String emailAddress,
+            String password
+    ) {
+
+        if (userRepository.existsByRoles_Code(RoleCode.ADMIN)
+                || userRepository.existsByRoles_Code(RoleCode.ORGANIZER)) {
+            throw new ConflictException(
+                    "Admin bootstrap has already been completed"
+            );
+        }
+
+        String email = normalizeEmail(emailAddress);
+
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new ConflictException(
+                    "Email is already registered"
+            );
+        }
+
+        Role playerRole = requireRole(RoleCode.PLAYER);
+        Role scorerRole = requireRole(RoleCode.SCORER);
+        Role organizerRole = requireRole(RoleCode.ORGANIZER);
+        Role adminRole = requireRole(RoleCode.ADMIN);
+
+        User user = new User(
+                displayName.trim(),
+                email,
+                null,
+                passwordEncoder.encode(password)
+        );
+
+        user.addRole(playerRole);
+        user.addRole(scorerRole);
+        user.addRole(organizerRole);
+        user.addRole(adminRole);
+
+        return userRepository.save(user);
+    }
+
+    private boolean tokensMatch(
+            String expected,
+            String actual
+    ) {
+
+        byte[] expectedBytes =
+                expected.getBytes(StandardCharsets.UTF_8);
+        byte[] actualBytes =
+                actual == null
+                        ? new byte[0]
+                        : actual.getBytes(StandardCharsets.UTF_8);
+
+        return MessageDigest.isEqual(
+                expectedBytes,
+                actualBytes
         );
     }
 

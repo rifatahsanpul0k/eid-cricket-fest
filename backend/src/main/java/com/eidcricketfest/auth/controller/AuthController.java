@@ -44,6 +44,20 @@ public class AuthController {
         return authService.register(request);
     }
 
+    @Operation(summary = "Bootstrap first admin account")
+    @PostMapping("/bootstrap-admin")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AuthResponse bootstrapAdmin(
+            @Valid @RequestBody BootstrapAdminRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        authRateLimiter.checkRegistration(
+                clientIpResolver.resolve(servletRequest)
+        );
+
+        return authService.bootstrapAdmin(request);
+    }
+
     @Operation(summary = "Login")
     @PostMapping("/login")
     public AuthResponse login(

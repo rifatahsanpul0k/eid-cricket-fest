@@ -1,12 +1,10 @@
-import type { Tournament, TournamentEdition } from "@/lib/api/tournaments";
-import { editionStatusLabel } from "@/lib/tournament/select-current-edition";
+import type { TournamentEdition } from "@/lib/api/tournaments";
+import { TOURNAMENT_PRODUCT_NAME } from "@/lib/tournament/branding";
 import { formatDate } from "@/lib/utils/format";
 
 export function TournamentInfo({
-  tournament,
   edition,
 }: {
-  tournament: Tournament;
   edition: TournamentEdition;
 }) {
   return (
@@ -21,8 +19,11 @@ export function TournamentInfo({
           </h2>
         </div>
         <div className="grid gap-4 lg:col-span-2 sm:grid-cols-2">
-          <InfoItem label="Edition" value={edition.name ?? "Current edition"} />
-          <InfoItem label="Status" value={editionStatusLabel(edition.status)} />
+          <InfoItem
+            label="Edition"
+            value={edition.name ?? "Current edition"}
+          />
+          <InfoItem label="Status" value={edition.status ?? "TOURNAMENT"} />
           <InfoItem
             label="Dates"
             value={`${formatDate(edition.startDate)} to ${formatDate(
@@ -31,7 +32,7 @@ export function TournamentInfo({
           />
           <InfoItem
             label="Tournament"
-            value={tournament.description ?? tournament.name ?? "Eid Cricket Fest"}
+            value={TOURNAMENT_PRODUCT_NAME}
           />
         </div>
       </div>

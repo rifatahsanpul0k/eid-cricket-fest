@@ -57,6 +57,9 @@ class OpenApiContractIntegrationTest
         assertThat(paths.has("/api/v1/auth/login"))
                 .isTrue();
 
+        assertThat(paths.has("/api/v1/auth/bootstrap-admin"))
+                .isTrue();
+
         assertThat(paths.has("/api/v1/players"))
                 .isTrue();
 
@@ -115,6 +118,11 @@ class OpenApiContractIntegrationTest
 
         assertThat(hasBearerRequirement(
                 paths.path("/api/v1/auth/login")
+                        .path("post")
+        )).isFalse();
+
+        assertThat(hasBearerRequirement(
+                paths.path("/api/v1/auth/bootstrap-admin")
                         .path("post")
         )).isFalse();
 

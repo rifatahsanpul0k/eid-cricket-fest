@@ -3,6 +3,8 @@ import type { components } from "@/lib/api/schema";
 export type AuthResponse = components["schemas"]["AuthResponse"];
 export type LoginRequest = components["schemas"]["LoginRequest"];
 export type RegisterRequest = components["schemas"]["RegisterRequest"];
+export type BootstrapAdminRequest =
+  components["schemas"]["BootstrapAdminRequest"];
 export type PlayerResponse = components["schemas"]["PlayerResponse"];
 export type CreatePlayerRequest = components["schemas"]["CreatePlayerRequest"];
 export type MyTeamResponse = components["schemas"]["MyTeamResponse"];
