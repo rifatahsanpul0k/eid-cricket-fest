@@ -32,7 +32,7 @@ COPY --from=build \
      /workspace/app.jar \
      /app/app.jar
 
-USER 10001:0
+USER 10001:1000
 
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Duser.timezone=UTC"
 
